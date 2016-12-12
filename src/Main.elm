@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, classList, href, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Random
 import Time exposing (second)
 
 import Legendaries exposing (Legendary, Legendary(..))
@@ -31,7 +32,7 @@ type alias Druid =
 
 type Message
   = EnteringReportCode String
-  | GetFights
+  | GetFights (Maybe Int)
   | FightsRetrieved (Result Http.Error (List WCL.Fight, List WCL.Friendly))
   | Analyze WCL.Fight
   | EventsRetrieved WCL.Fight (Result Http.Error WCL.EventPage)
@@ -76,10 +77,17 @@ update msg model = case msg of
   ClearErrorMessage ->
     ({ model | errorMessage = Nothing }, Cmd.none)
 
-  GetFights ->
+  GetFights (Just randomNumber) ->
     let
-      cmd = Http.send FightsRetrieved <| WarcraftLogs.getFights model.reportCode
+      cmd = Http.send FightsRetrieved <| WarcraftLogs.getFights model.reportCode randomNumber
     in (model, cmd)
+
+  GetFights Nothing ->
+    let
+      randomNumber = Random.int Random.minInt Random.maxInt
+      cmd = Random.generate (GetFights << Just) randomNumber
+    in
+      (model, cmd)
 
   FightsRetrieved (Err _) ->
     ({ model | errorMessage = Just "Failed to fetch fights in the given report" }, Cmd.none)
@@ -180,7 +188,7 @@ view model =
         [ label [ class "sr-only" ] [ text "Report code" ]
         , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode ] []
         ]
-      , button [ class "btn btn-default", onClick GetFights, type_ "button" ] [ text "Get fights" ]
+      , button [ class "btn btn-default", onClick <| GetFights Nothing, type_ "button" ] [ text "Get fights" ]
       ]
     , div [ classList [ ("row", True), ("hidden", List.isEmpty model.fights) ] ]
       [ div [ class "col-md-3" ]

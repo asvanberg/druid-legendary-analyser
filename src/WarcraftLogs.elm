@@ -13,10 +13,14 @@ type alias ReportCode = String
 apiKey : String
 apiKey = "087783eb78c21061d028831d2344d118"
 
-getFights : ReportCode -> Http.Request (List Fight, List Friendly)
-getFights reportCode =
+-- The random number is used to circumvent browser caching if you're following
+-- a live log and want new fights to show up.
+getFights : ReportCode -> Int -> Http.Request (List Fight, List Friendly)
+getFights reportCode randomNumber =
   let
-    url = "https://www.warcraftlogs.com/v1/report/fights/" ++ reportCode ++ "?api_key=" ++ apiKey
+    url = "https://www.warcraftlogs.com/v1/report/fights/" ++ reportCode
+      ++ "?api_key=" ++ apiKey
+      ++ "&" ++ (toString randomNumber)
     fights = field "fights" <| list fightDecoder
     friendlies = field "friendlies" <| list friendlyDecoder
   in
