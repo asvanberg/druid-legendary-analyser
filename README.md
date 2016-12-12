@@ -4,6 +4,8 @@ Analyses [WarcraftLogs](http://www.warcraftlogs.com) reports to determine the
 benefit provided by various legendaries.
 
 ## Usage
+Deployed at https://druid-legendary-analyser.herokuapp.com
+
 Enter the report code (the bolded part in www.warcraftlogs.com/reports/__Zg7m2PfWkqhVLFvn__/)
 and then click on a fight to analyse it.
 It takes about ten seconds per one minute of fighting to analyse.
