@@ -250,5 +250,8 @@ viewLegendary model druidID legendary =
 
         Waist ->
           "Waist"
+
+        Chest ->
+          "Chest"
   in
     li [] [ text legendaryName, text ": ", text bonusHealing ]

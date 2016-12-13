@@ -1,6 +1,7 @@
 module Legendaries exposing (Legendary, Legendary(..), Model, all, itemId, init, update, bonusHealing)
 
 import Legendaries.Boots as Boots
+import Legendaries.Chest as Chest
 import Legendaries.Shoulders as Shoulders
 import Legendaries.Wrists as Wrists
 import Legendaries.Tearstone as Tearstone
@@ -14,11 +15,12 @@ type Model = Model
   , wrists : Wrists.Model
   , tearstone : Tearstone.Model
   , waist : Waist.Model
+  , chest : Chest.Model
   }
 
-type Legendary = Shoulders | Wrists | Boots | Tearstone | Waist
+type Legendary = Shoulders | Wrists | Boots | Tearstone | Waist | Chest
 all : List Legendary
-all = [ Shoulders, Wrists, Boots, Tearstone, Waist ]
+all = [ Shoulders, Wrists, Boots, Tearstone, Waist, Chest ]
 
 itemId : Legendary -> Int
 itemId legendary =
@@ -28,6 +30,7 @@ itemId legendary =
     Boots -> 137026
     Tearstone -> 137042
     Waist -> 137078
+    Chest -> 137015
 
 init : Model
 init = Model
@@ -36,6 +39,7 @@ init = Model
   , wrists = Wrists.init
   , tearstone = Tearstone.init
   , waist = Waist.init
+  , chest = Chest.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -46,6 +50,7 @@ update events (Model model) =
     newWrists = List.foldl Wrists.parse model.wrists events
     newTearstone = List.foldl Tearstone.parse model.tearstone events
     newWaist = List.foldl Waist.parse model.waist events
+    newChest = List.foldl Chest.parse model.chest events
   in
     Model
       { model
@@ -54,6 +59,7 @@ update events (Model model) =
       , wrists = newWrists
       , tearstone = newTearstone
       , waist = newWaist
+      , chest = newChest
       }
 
 bonusHealing : Legendary -> Model -> Int -> Int
@@ -71,5 +77,7 @@ bonusHealing legendary (Model model) sourceID =
           Tearstone.bonusHealing model.tearstone
         Waist ->
           Waist.bonusHealing model.waist
+        Chest ->
+          Chest.bonusHealing model.chest
   in
     legendaryBonushealing sourceID
