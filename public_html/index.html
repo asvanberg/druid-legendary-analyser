@@ -18,9 +18,22 @@
     <![endif]-->
   </head>
   <body>
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Restoration druid legendary analyser</a>
+      </div>
+      <div class="collapse navbar-collapse">
+        <a class="navbar-text navbar-right navbar-link" href="https://github.com/asvanberg/druid-legendary-analyser">
+          Source and information available at GitHub
+        </a>
+      </div>
+    </nav>
+
+    <div id="app"></div>
     <script src="app.js"></script>
     <script type="text/javascript">
-      Elm.Main.fullscreen();
+      Elm.Main.embed(document.getElementById('app'));
     </script>
   </body>
 </html>
