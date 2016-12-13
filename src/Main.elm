@@ -193,7 +193,7 @@ view model =
     , div [ classList [ ("row", True), ("hidden", List.isEmpty model.fights) ] ]
       [ div [ class "col-md-3" ]
         [ text "Pick a fight"
-        , ul [] <| List.map viewFight model.fights
+        , ul [] <| List.map (viewFight model.fights) model.fights
         ]
       , div [ class "col-md-9" ]
         [ div [ class "progress" ]
@@ -205,14 +205,22 @@ view model =
       ]
     ]
 
-viewFight : WCL.Fight -> Html Message
-viewFight fight =
-  li []
-    [ a [ onClick <| Analyze fight, href "#" ] -- Dummy href for browser styling
-      [ text fight.name
-      , text <| if fight.kill then " kill" else " wipe"
+viewFight : List WCL.Fight -> WCL.Fight -> Html Message
+viewFight fights fight =
+  let
+    sameEncounter fight1 fight2 =
+      fight1.boss == fight2.boss && fight1.difficulty == fight2.difficulty
+    wipeNumber = List.filter (sameEncounter fight) fights
+      |> List.filter (\f -> f.id < fight.id)
+      |> List.length
+      |> (+) 1
+  in
+    li []
+      [ a [ onClick <| Analyze fight, href "#" ] -- Dummy href for browser styling
+        [ text fight.name
+        , text <| if fight.kill then " kill" else " wipe (#" ++ (toString wipeNumber) ++ ")"
+        ]
       ]
-    ]
 
 viewDruid : Model -> Druid -> Html Message
 viewDruid model druid =

@@ -9,6 +9,7 @@ type alias Fight =
   , start : Time
   , end : Time
   , boss : Int
+  , difficulty : Maybe Int
   }
 
 type alias Friendly =
