@@ -236,5 +236,8 @@ viewLegendary model druidID legendary =
 
         Wrists ->
           "Wrists"
+
+        Tearstone ->
+          "Tearstone"
   in
     li [] [ text legendaryName, text ": ", text bonusHealing ]
