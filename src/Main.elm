@@ -159,11 +159,10 @@ update msg model = case msg of
 
   SelectFight fight ->
     let
-      (newModel, cmd) = update (Analyze fight) model
       updateUrl = Navigation.newUrl
         <| "?reportCode=" ++ model.reportCode ++ "&fight=" ++ (toString fight.id)
     in
-      (newModel, Cmd.batch [updateUrl, cmd])
+      (model, updateUrl)
 
   EventsRetrieved _ (Err err) ->
     ({ model | errorMessage = Just "Failed to fetch events in the selected fight" }, Cmd.none)
