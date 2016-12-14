@@ -1,9 +1,12 @@
 module Main exposing (main)
 
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (class, classList, href, placeholder, style, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (defaultOptions, onClick, onInput, onWithOptions)
 import Http
+import Json.Decode as Decode
+import Navigation
 import Random
 import Time exposing (second)
 
@@ -32,22 +35,24 @@ type alias Druid =
 
 type Message
   = EnteringReportCode String
-  | GetFights (Maybe Int)
-  | FightsRetrieved (Result Http.Error (List WCL.Fight, List WCL.Friendly))
+  | GetFights (Maybe Int) (Maybe Int)
+  | FightsRetrieved (Maybe Int) (Result Http.Error (List WCL.Fight, List WCL.Friendly))
+  | SelectFight WCL.Fight
   | Analyze WCL.Fight
   | EventsRetrieved WCL.Fight (Result Http.Error WCL.EventPage)
   | ClearErrorMessage
+  | UrlChange Navigation.Location
 
 main : Program Never Model Message
-main = program
+main = Navigation.program UrlChange
   { init = init
   , update = update
   , view = view
   , subscriptions = subscriptions
   }
 
-init : (Model, Cmd Message)
-init =
+init : Navigation.Location -> (Model, Cmd Message)
+init location =
   let model =
     { reportCode = ""
     , fights = []
@@ -57,7 +62,7 @@ init =
     , errorMessage = Nothing
     , druids = []
     }
-  in (model, Cmd.none)
+  in update (UrlChange location) model
 
 subscriptions : Model -> Sub Message
 subscriptions model =
@@ -70,6 +75,33 @@ subscriptions model =
 
 update : Message -> Model -> (Model, Cmd Message)
 update msg model = case msg of
+  UrlChange location ->
+    let
+      toKeyValuePair segment =
+        case String.split "=" segment of
+          [key, value] ->
+            Maybe.map2 (,) (Http.decodeUri key) (Http.decodeUri value)
+
+          _ ->
+            Nothing
+
+      queryParams = location.search
+        |> String.dropLeft 1
+        |> String.split "&"
+        |> List.filterMap toKeyValuePair
+        |> Dict.fromList
+
+      maybeReportCode = Dict.get "reportCode" queryParams
+      maybeFight = Dict.get "fight" queryParams
+        |> Maybe.andThen (Result.toMaybe << String.toInt)
+    in
+      case maybeReportCode of
+        Just reportCode ->
+          update (GetFights maybeFight Nothing) { model | reportCode = reportCode }
+
+        Nothing ->
+          (model, Cmd.none)
+
   EnteringReportCode reportCode ->
     let newModel = { model | reportCode = reportCode }
     in (newModel, Cmd.none)
@@ -77,27 +109,38 @@ update msg model = case msg of
   ClearErrorMessage ->
     ({ model | errorMessage = Nothing }, Cmd.none)
 
-  GetFights (Just randomNumber) ->
+  GetFights toAnalyze (Just randomNumber)  ->
     let
-      cmd = Http.send FightsRetrieved <| WarcraftLogs.getFights model.reportCode randomNumber
+      cmd = Http.send (FightsRetrieved toAnalyze)
+        <| WarcraftLogs.getFights model.reportCode randomNumber
     in (model, cmd)
 
-  GetFights Nothing ->
+  GetFights toAnalyze Nothing ->
     let
       randomNumber = Random.int Random.minInt Random.maxInt
-      cmd = Random.generate (GetFights << Just) randomNumber
+      cmd = Random.generate ((GetFights toAnalyze) << Just) randomNumber
     in
       (model, cmd)
 
-  FightsRetrieved (Err _) ->
+  FightsRetrieved _ (Err _) ->
     ({ model | errorMessage = Just "Failed to fetch fights in the given report" }, Cmd.none)
 
-  FightsRetrieved (Ok (fights, friendlies)) ->
+  FightsRetrieved toAnalyze (Ok (fights, friendlies)) ->
     let
       druids = List.filter ((==) "Druid" << .class) friendlies
       relevantFights = List.filter ((<) 0 << .boss) fights
       newModel = { model | fights = relevantFights, friendlies = druids }
-    in (newModel, Cmd.none)
+
+      findCorrectFight fightID = find ((==) fightID << .id) relevantFights
+      (finalModel, cmd) =
+        case Maybe.andThen findCorrectFight toAnalyze of
+          Just fight ->
+            update (Analyze fight) newModel
+
+          Nothing ->
+            (newModel, Cmd.none)
+
+    in (finalModel, cmd)
 
   Analyze fight ->
     let
@@ -113,6 +156,14 @@ update msg model = case msg of
         }
     in
       (newModel, cmd)
+
+  SelectFight fight ->
+    let
+      (newModel, cmd) = update (Analyze fight) model
+      updateUrl = Navigation.newUrl
+        <| "?reportCode=" ++ model.reportCode ++ "&fight=" ++ (toString fight.id)
+    in
+      (newModel, Cmd.batch [updateUrl, cmd])
 
   EventsRetrieved _ (Err err) ->
     ({ model | errorMessage = Just "Failed to fetch events in the selected fight" }, Cmd.none)
@@ -186,14 +237,14 @@ view model =
     , form [ class "form-inline" ]
       [ div [ class "form-group" ]
         [ label [ class "sr-only" ] [ text "Report code" ]
-        , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode ] []
+        , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode, value model.reportCode ] []
         ]
-      , button [ class "btn btn-default", onClick <| GetFights Nothing, type_ "button" ] [ text "Get fights" ]
+      , button [ class "btn btn-default", onClick <| GetFights Nothing Nothing, type_ "button" ] [ text "Get fights" ]
       ]
     , div [ classList [ ("row", True), ("hidden", List.isEmpty model.fights) ] ]
       [ div [ class "col-md-4" ]
         [ text "Pick a fight"
-        , ul [] <| List.map (viewFight model.fights) model.fights
+        , ul [] <| List.map (viewFight model.reportCode model.fights) model.fights
         ]
       , div [ class "col-md-8" ]
         [ div [ class "progress" ]
@@ -205,8 +256,8 @@ view model =
       ]
     ]
 
-viewFight : List WCL.Fight -> WCL.Fight -> Html Message
-viewFight fights fight =
+viewFight : String -> List WCL.Fight -> WCL.Fight -> Html Message
+viewFight reportCode fights fight =
   let
     sameEncounter fight1 fight2 =
       fight1.boss == fight2.boss && fight1.difficulty == fight2.difficulty
@@ -214,9 +265,15 @@ viewFight fights fight =
       |> List.filter (\f -> f.id < fight.id)
       |> List.length
       |> (+) 1
+    preventDefault =
+      { defaultOptions | preventDefault = True }
+    onClick_ msg =
+      onWithOptions "click" preventDefault (Decode.succeed msg)
+    href_ =
+      "?reportCode=" ++ reportCode ++ "&fight=" ++ (toString fight.id)
   in
     li []
-      [ a [ onClick <| Analyze fight, href "#" ] -- Dummy href for browser styling
+      [ a [ onClick_ <| SelectFight fight, href href_ ]
         [ text fight.name
         , text <| if fight.kill then " kill" else " wipe (#" ++ (toString wipeNumber) ++ ")"
         ]
