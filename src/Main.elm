@@ -173,7 +173,7 @@ scanForDruids events friendlies =
 
 view : Model -> Html Message
 view model =
-  div [ class "container" ]
+  div []
     [ case model.errorMessage of
         Just errorMessage ->
           div [ class "alert alert-danger" ]
@@ -191,11 +191,11 @@ view model =
       , button [ class "btn btn-default", onClick <| GetFights Nothing, type_ "button" ] [ text "Get fights" ]
       ]
     , div [ classList [ ("row", True), ("hidden", List.isEmpty model.fights) ] ]
-      [ div [ class "col-md-3" ]
+      [ div [ class "col-md-4" ]
         [ text "Pick a fight"
         , ul [] <| List.map (viewFight model.fights) model.fights
         ]
-      , div [ class "col-md-9" ]
+      , div [ class "col-md-8" ]
         [ div [ class "progress" ]
           [ div [ class "progress-bar", style [ ("width", (toString <| round <| model.processed * 100) ++ "%") ] ]
             [ text <| toString <| round <| model.processed * 100, text "%" ]
