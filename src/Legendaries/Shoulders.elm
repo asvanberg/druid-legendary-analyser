@@ -92,7 +92,11 @@ parse event model =
       if ability.id == 197721 then -- Flourish
         let
           druid = getDruid model sourceID
-          extend = always ((+) 6)
+          extend _ expiration =
+            if expiration > timestamp then
+              expiration + 6
+            else
+              expiration
           newTargetHots = Dict.map (always <| Dict.map extend) druid.targetHots
           newDruid = { druid | targetHots = newTargetHots }
         in
