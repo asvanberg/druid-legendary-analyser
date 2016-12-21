@@ -8,6 +8,7 @@ import Http
 import Json.Decode as Decode
 import Navigation
 import Random
+import Regex as R
 import Time exposing (second)
 
 import Legendaries exposing (Legendary, Legendary(..))
@@ -25,6 +26,8 @@ type alias Model =
   , processed : Float
   , errorMessage : Maybe String
   , druids : List Druid
+  , fightSelectionOpen : Bool
+  , selectedFight : Maybe WCL.Fight
   }
 
 type alias Druid =
@@ -42,6 +45,7 @@ type Message
   | EventsRetrieved WCL.Fight (Result Http.Error WCL.EventPage)
   | ClearErrorMessage
   | UrlChange Navigation.Location
+  | OpenFightSelection
 
 main : Program Never Model Message
 main = Navigation.program UrlChange
@@ -61,6 +65,8 @@ init location =
     , processed = 0
     , errorMessage = Nothing
     , druids = []
+    , fightSelectionOpen = False
+    , selectedFight = Nothing
     }
   in update (UrlChange location) model
 
@@ -153,6 +159,7 @@ update msg model = case msg of
         | legendaries = Legendaries.init
         , druids = []
         , processed = 0
+        , selectedFight = Just fight
         }
     in
       (newModel, cmd)
@@ -161,8 +168,9 @@ update msg model = case msg of
     let
       updateUrl = Navigation.newUrl
         <| "?reportCode=" ++ model.reportCode ++ "&fight=" ++ (toString fight.id)
+      newModel = { model | fightSelectionOpen = False }
     in
-      (model, updateUrl)
+      (newModel, updateUrl)
 
   EventsRetrieved _ (Err err) ->
     ({ model | errorMessage = Just "Failed to fetch events in the selected fight" }, Cmd.none)
@@ -194,6 +202,9 @@ update msg model = case msg of
     in
       (newModel, cmd)
 
+  OpenFightSelection ->
+    ({ model | fightSelectionOpen = not model.fightSelectionOpen }, Cmd.none)
+
 scanForDruids : List WCL.Event -> List WCL.Friendly -> List Druid
 scanForDruids events friendlies =
   let
@@ -223,7 +234,7 @@ scanForDruids events friendlies =
 
 view : Model -> Html Message
 view model =
-  div []
+  div [] <|
     [ case model.errorMessage of
         Just errorMessage ->
           div [ class "alert alert-danger" ]
@@ -239,31 +250,41 @@ view model =
         , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode, value model.reportCode ] []
         ]
       , button [ class "btn btn-default", onClick <| GetFights Nothing Nothing, type_ "button" ] [ text "Get fights" ]
+      , div
+          [ classList [ ("form-group", True), ("hidden", List.isEmpty model.fights) ] ]
+          [ viewFights model ]
       ]
-    , div [ classList [ ("row", True), ("hidden", List.isEmpty model.fights) ] ]
-      [ div [ class "col-md-4" ]
-        [ text "Pick a fight"
-        , ul [] <| List.map (viewFight model.reportCode model.fights) model.fights
-        ]
-      , div [ class "col-md-8" ]
-        [ div [ class "progress" ]
-          [ div [ class "progress-bar", style [ ("width", (toString <| round <| model.processed * 100) ++ "%") ] ]
-            [ text <| toString <| round <| model.processed * 100, text "%" ]
-          ]
-        , div [] <| List.map (viewDruid model) model.druids
-        ]
+    , case model.selectedFight of
+        Just fight ->
+          div []
+            [ h2 [] [ text <| fightTitle model.fights fight ]
+            , div [ class "progress" ]
+              [ div
+                  [ class "progress-bar"
+                  , style [ ("width", (toString <| model.processed * 100) ++ "%") ]
+                  ]
+                  [ text <| toString <| round <| model.processed * 100, text "%" ]
+              ]
+            , div [ class "row" ] <| List.map (viewDruid model) model.druids
+            ]
+        Nothing ->
+          div [] []
+    ]
+
+viewFights : Model -> Html Message
+viewFights model =
+  div [ classList [ ("dropdown", True), ("open", model.fightSelectionOpen) ] ]
+    [ button [ class "btn btn-default dropdown-toggle", type_ "button", onClick OpenFightSelection ]
+      [ text "Select fight "
+      , span [ class "caret"] []
       ]
+    , ul [ class "dropdown-menu" ]
+        <| List.map (viewFight model.reportCode model.fights) model.fights
     ]
 
 viewFight : String -> List WCL.Fight -> WCL.Fight -> Html Message
 viewFight reportCode fights fight =
   let
-    sameEncounter fight1 fight2 =
-      fight1.boss == fight2.boss && fight1.difficulty == fight2.difficulty
-    wipeNumber = List.filter (sameEncounter fight) fights
-      |> List.filter (\f -> f.id < fight.id)
-      |> List.length
-      |> (+) 1
     preventDefault =
       { defaultOptions | preventDefault = True }
     onClick_ msg =
@@ -273,21 +294,35 @@ viewFight reportCode fights fight =
   in
     li []
       [ a [ onClick_ <| SelectFight fight, href href_ ]
-        [ text fight.name
-        , text <| if fight.kill then " kill" else " wipe (#" ++ (toString wipeNumber) ++ ")"
+        [ text <| fightTitle fights fight
         ]
       ]
 
+fightTitle : List WCL.Fight -> WCL.Fight -> String
+fightTitle fights fight =
+  let
+    sameEncounter fight1 fight2 =
+      fight1.boss == fight2.boss && fight1.difficulty == fight2.difficulty
+    wipeNumber = List.filter (sameEncounter fight) fights
+      |> List.filter (\f -> f.id < fight.id)
+      |> List.length
+      |> (+) 1
+  in
+    fight.name ++ " " ++ if fight.kill then "kill" else "wipe (#" ++ (toString wipeNumber) ++ ")"
+
 viewDruid : Model -> Druid -> Html Message
 viewDruid model druid =
-  div []
-    [ text druid.name
-    , ul [] <| List.map (viewLegendary model druid.id) druid.legendaries
+  div [ class "col-lg-4 col-md-6 col-sm-6" ]
+    [ div [ class "panel panel-default" ]
+      [ div [class "panel-heading"] [ text druid.name ]
+      , ul [ class "list-group" ] <| List.map (viewLegendary model druid.id) druid.legendaries
+      ]
     ]
 
 viewLegendary : Model -> Int -> Legendary -> Html Message
 viewLegendary model druidID legendary =
   let
+    thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",")
     bonusHealing =
       toString <| Legendaries.bonusHealing legendary model.legendaries druidID
     legendaryName =
@@ -310,4 +345,7 @@ viewLegendary model druidID legendary =
         Chest ->
           "Chest"
   in
-    li [] [ text legendaryName, text ": ", text bonusHealing ]
+    li [ class "list-group-item" ]
+      [ text legendaryName, text ": "
+      , span [ class "pull-right" ] [ text <| thousandSep bonusHealing ]
+      ]
