@@ -108,14 +108,27 @@ parse event model =
         druid = getDruid model sourceID
         hots = Dict.get targetID druid.targetHots ? Dict.empty
       in
-        case Dict.get ability.id hots of
-          Just expiration ->
-            if expiration < timestamp then
+        if ability.id == 189853 then -- Dreamwalker
+          let
+            dreamwalkerSpells = [774, 155777]
+            isExpired hotId =
+              Dict.get hotId hots
+                |> Maybe.map (\expiration -> expiration < timestamp)
+                |> Maybe.withDefault True
+          in
+            if List.all isExpired dreamwalkerSpells then
               setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
             else
               model
-          Nothing ->
-            model
+        else
+          case Dict.get ability.id hots of
+            Just expiration ->
+              if expiration < timestamp then
+                setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+              else
+                model
+            Nothing ->
+              model
     _ ->
       model
 

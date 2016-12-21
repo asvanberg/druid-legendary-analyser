@@ -124,8 +124,14 @@ parse event (Model druids) =
     Heal {sourceID, targetID, ability, amount} ->
       let
         druid = getDruid sourceID
+        isTearstoneTarget =
+          Set.map (\hot -> (hot, targetID)) tearstoneSpells
+            |> Set.toList
+            |> List.any (flip Set.member druid.tearstoneTargets)
       in
         if Set.member (ability.id, targetID) druid.tearstoneTargets then
+          updated sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+        else if ability.id == 189853 && isTearstoneTarget then -- Dreamwalker
           updated sourceID { druid | bonusHealing = druid.bonusHealing + amount }
         else
           Model druids
