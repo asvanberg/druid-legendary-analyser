@@ -6,6 +6,7 @@ import Legendaries.Shoulders as Shoulders
 import Legendaries.Wrists as Wrists
 import Legendaries.Tearstone as Tearstone
 import Legendaries.Waist as Waist
+import Legendaries.Drape as Drape
 
 import WarcraftLogs.Models as WCL
 
@@ -16,11 +17,12 @@ type Model = Model
   , tearstone : Tearstone.Model
   , waist : Waist.Model
   , chest : Chest.Model
+  , drape : Drape.Model
   }
 
-type Legendary = Shoulders | Wrists | Boots | Tearstone | Waist | Chest
+type Legendary = Shoulders | Wrists | Boots | Tearstone | Waist | Chest | Drape
 all : List Legendary
-all = [ Shoulders, Wrists, Boots, Tearstone, Waist, Chest ]
+all = [ Shoulders, Wrists, Boots, Tearstone, Waist, Chest, Drape ]
 
 itemId : Legendary -> Int
 itemId legendary =
@@ -31,6 +33,7 @@ itemId legendary =
     Tearstone -> 137042
     Waist -> 137078
     Chest -> 137015
+    Drape -> 142170
 
 init : Model
 init = Model
@@ -40,6 +43,7 @@ init = Model
   , tearstone = Tearstone.init
   , waist = Waist.init
   , chest = Chest.init
+  , drape = Drape.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -51,6 +55,7 @@ update events (Model model) =
     newTearstone = List.foldl Tearstone.parse model.tearstone events
     newWaist = List.foldl Waist.parse model.waist events
     newChest = List.foldl Chest.parse model.chest events
+    newDrape = List.foldl Drape.parse model.drape events
   in
     Model
       { model
@@ -60,6 +65,7 @@ update events (Model model) =
       , tearstone = newTearstone
       , waist = newWaist
       , chest = newChest
+      , drape = newDrape
       }
 
 bonusHealing : Legendary -> Model -> Int -> Int
@@ -79,5 +85,7 @@ bonusHealing legendary (Model model) sourceID =
           Waist.bonusHealing model.waist
         Chest ->
           Chest.bonusHealing model.chest
+        Drape ->
+          Drape.bonusHealing model.drape
   in
     legendaryBonushealing sourceID

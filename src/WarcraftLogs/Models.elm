@@ -60,6 +60,7 @@ type Event
     , overheal : Int
     , hitPoints : Int -- Target hit points _AFTER_ the heal landed
     , maxHitPoints : Int -- target max hit points
+    , hitType : Int
     }
   | Absorbed
     { timestamp : Time

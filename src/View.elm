@@ -123,6 +123,9 @@ viewLegendary model druidID legendary =
 
         Chest ->
           "Chest"
+
+        Drape ->
+          "Drape of Shame"
   in
     li [ class "list-group-item" ]
       [ text legendaryName, text ": "

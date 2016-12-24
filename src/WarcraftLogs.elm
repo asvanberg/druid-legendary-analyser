@@ -177,24 +177,35 @@ cast =
 
 heal : Decoder Event
 heal =
-  map8 (\timestamp sourceID targetID ability amount overheal hitPoints maxHitPoints -> Heal
-    { timestamp = timestamp
-    , sourceID = sourceID
-    , targetID = targetID
-    , ability = ability
-    , amount = amount
-    , overheal = overheal
-    , hitPoints = hitPoints
-    , maxHitPoints = maxHitPoints
-    })
-    (field "timestamp" float)
-    (field "sourceID" int)
-    (field "targetID" int)
-    (field "ability" ability)
-    (field "amount" int)
-    (map (Maybe.withDefault 0) <| maybe <| field "overheal" int)
-    (field "hitPoints" int)
-    (field "maxHitPoints" int)
+  let
+    part1 = targetedAbilityAmount
+    part2 =
+      map4 (\overheal hitPoints maxHitPoints hitType ->
+        { overheal = overheal
+        , hitPoints = hitPoints
+        , maxHitPoints = maxHitPoints
+        , hitType = hitType
+        })
+        (map (Maybe.withDefault 0) <| maybe <| field "overheal" int)
+        (field "hitPoints" int)
+        (field "maxHitPoints" int)
+        (field "hitType" int)
+  in
+    map2 (\{timestamp, sourceID, targetID, ability ,amount} {overheal, hitType, hitPoints, maxHitPoints} ->
+      Heal
+        { timestamp = timestamp
+        , sourceID = sourceID
+        , targetID = targetID
+        , ability = ability
+        , amount = amount
+        , overheal = overheal
+        , hitPoints = hitPoints
+        , maxHitPoints = maxHitPoints
+        , hitType = hitType
+        }
+      )
+      part1
+      part2
 
 combatantinfo : Decoder Event
 combatantinfo =
