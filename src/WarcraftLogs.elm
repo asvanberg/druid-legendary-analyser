@@ -38,7 +38,7 @@ getEvents reportCode start end =
 
 fightDecoder : Decoder Fight
 fightDecoder =
-  map7 Fight
+  map8 Fight
     (field "id" int)
     (field "name" string)
     (map (Maybe.withDefault False) <| maybe <| field "kill" bool)
@@ -46,6 +46,7 @@ fightDecoder =
     (field "end_time" float)
     (field "boss" int)
     (maybe <| field "difficulty" int)
+    (maybe <| field "bossPercentage" int)
 
 friendlyDecoder : Decoder Friendly
 friendlyDecoder =

@@ -86,8 +86,20 @@ fightTitle fights fight =
       |> List.filter (\f -> f.id < fight.id)
       |> List.length
       |> (+) 1
+    zeroPad n = if n < 10 then "0" ++ (toString n) else toString n
+    duration = floor <| (fight.end - fight.start) / 1000
+    minutes = duration // 60
+    seconds = duration % 60
+    durationString = (toString minutes) ++ ":" ++ (zeroPad seconds)
   in
-    fight.name ++ " " ++ if fight.kill then "kill" else "wipe (#" ++ (toString wipeNumber) ++ ")"
+    fight.name
+      ++ " "
+      ++ (if fight.kill then "kill" else "wipe #" ++ (toString wipeNumber))
+      ++ " "
+      ++ "(" ++ durationString ++ ")"
+      ++ case (fight.kill, fight.bossPercentage) of
+        (False, Just bossPercentage) -> " - " ++ (toString <| bossPercentage // 100) ++ "%"
+        _ -> ""
 
 viewDruid : Model -> Druid -> Html Message
 viewDruid model druid =

@@ -10,6 +10,7 @@ type alias Fight =
   , end : Time
   , boss : Int
   , difficulty : Maybe Int
+  , bossPercentage: Maybe Int
   }
 
 type alias Friendly =
