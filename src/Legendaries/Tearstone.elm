@@ -93,33 +93,8 @@ parse event (Model druids) =
         else
           Model druids
 
-    RefreshBuff {sourceID, targetID, ability} ->
-      let
-        druid = getDruid sourceID
-      in
-        if Set.member ability.id tearstoneSpells then
-          if targetID == druid.rejuvenationTarget then
-            let
-              tearstoneTargets = Set.remove (ability.id, targetID) druid.tearstoneTargets
-              tearstoneActive = False
-            in
-              updated sourceID
-                { druid
-                | tearstoneTargets = tearstoneTargets
-                , tearstoneActive = tearstoneActive
-                }
-          else if druid.tearstoneActive then
-            updated sourceID { druid | tearstoneTargets = Set.insert (ability.id, targetID) druid.tearstoneTargets }
-          else
-            let
-              tearstoneTargets = Set.remove (ability.id, targetID) druid.tearstoneTargets
-            in
-              updated sourceID
-                { druid
-                | tearstoneTargets = tearstoneTargets
-                }
-        else
-          Model druids
+    RefreshBuff eventData ->
+      parse (ApplyBuff eventData) (Model druids)
 
     Heal {sourceID, targetID, ability, amount} ->
       let
