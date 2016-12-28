@@ -140,6 +140,6 @@ viewLegendary model druidID legendary =
           "Drape of Shame"
   in
     li [ class "list-group-item" ]
-      [ text legendaryName, text ": "
+      [ a [ href <| "http://www.wowhead.com/item=" ++ (toString <| Legendaries.itemId legendary) ] [ text legendaryName ]
       , span [ class "pull-right" ] [ text <| thousandSep bonusHealing ]
       ]
