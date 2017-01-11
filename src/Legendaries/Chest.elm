@@ -23,7 +23,7 @@ parse event (Model druids) =
     Heal {sourceID, amount, overheal, ability} ->
       if ability.id == 145109 || ability.id == 145110 then
         let
-          baseHeal = (amount + overheal) * 2 // 3
+          baseHeal = (amount + overheal) * 4 // 7
           chest = max 0 (amount - baseHeal)
           currentBonus = Dict.get sourceID druids ? 0
         in
