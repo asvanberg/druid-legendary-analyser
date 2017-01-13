@@ -22,7 +22,12 @@ parse event (Model druids) =
     Heal {sourceID, ability, amount, overheal, hitType} ->
       if isCrit hitType || isLivingSeed ability then
         let
-          baseHeal = (amount + overheal) // 11 * 10
+          -- The total heal is now 210%, 100% from "normal", 100% from critical
+          -- bonus and an additional 10% from Drape of Shame
+          -- Before it was incorrectly crediting 10% of the total heal to the
+          -- cloak
+          -- Thanks to Styx of ScrubBusters for finding the bug.
+          baseHeal = (amount + overheal) // 210 * 200
           shameHealing = max 0 (amount - baseHeal)
           currentBonus = Dict.get sourceID druids ? 0
         in
