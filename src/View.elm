@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (class, classList, href, placeholder, style, type_, value)
 import Html.Events exposing (defaultOptions, onClick, onInput, onWithOptions)
@@ -44,7 +45,7 @@ view model =
                   ]
                   [ text <| toString <| round <| model.processed * 100, text "%" ]
               ]
-            , div [ class "row" ] <| List.map (viewDruid model) model.druids
+            , div [ class "row" ] <| List.map (viewDruid model) <| Dict.values model.druids
             ]
         Nothing ->
           div [] []
@@ -103,19 +104,20 @@ fightTitle fights fight =
 
 viewDruid : Model -> Druid -> Html Message
 viewDruid model druid =
-  div [ class "col-lg-4 col-md-6 col-sm-6" ]
+  div [ class "col-lg-6 col-md-6 col-sm-6" ]
     [ div [ class "panel panel-default" ]
       [ div [class "panel-heading"] [ text druid.name ]
-      , ul [ class "list-group" ] <| List.map (viewLegendary model druid.id) druid.legendaries
+      , ul [ class "list-group" ]
+        <| List.map (viewLegendary model druid) druid.legendaries
+        ++ [ li [ class "list-group-item" ] [ text "Total", span [ class "pull-right" ] [ text <| thousandSep druid.healingDone ] ] ]
       ]
     ]
 
-viewLegendary : Model -> Int -> Legendary -> Html Message
-viewLegendary model druidID legendary =
+viewLegendary : Model -> Druid -> Legendary -> Html Message
+viewLegendary model druid legendary =
   let
-    thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",")
-    bonusHealing =
-      toString <| Legendaries.bonusHealing legendary model.legendaries druidID
+    bonusHealing = Legendaries.bonusHealing legendary model.legendaries druid.id
+    percentage = toFloat (bonusHealing * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
     legendaryName =
       case legendary of
         Shoulders ->
@@ -141,5 +143,8 @@ viewLegendary model druidID legendary =
   in
     li [ class "list-group-item" ]
       [ a [ href <| "http://www.wowhead.com/item=" ++ (toString <| Legendaries.itemId legendary) ] [ text legendaryName ]
-      , span [ class "pull-right" ] [ text <| thousandSep bonusHealing ]
+      , span [ class "pull-right" ] [ text <| thousandSep bonusHealing, text " (", text <| toString percentage, text "%)" ]
       ]
+
+thousandSep : Int -> String
+thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",") << toString

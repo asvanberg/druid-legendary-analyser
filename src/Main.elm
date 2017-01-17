@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Dict
+import Dict exposing (Dict)
 import Http
 import Navigation
 import Random
@@ -32,7 +32,7 @@ init location =
     , legendaries = Legendaries.init
     , processed = 0
     , errorMessage = Nothing
-    , druids = []
+    , druids = Dict.empty
     , fightSelectionOpen = False
     , selectedFight = Nothing
     }
@@ -125,7 +125,7 @@ update msg model = case msg of
       newModel =
         { model
         | legendaries = Legendaries.init
-        , druids = []
+        , druids = Dict.empty
         , processed = 0
         , selectedFight = Just fight
         }
@@ -147,7 +147,7 @@ update msg model = case msg of
     let
       events = page.events
 
-      newDruids = scanForDruids events model.friendlies
+      newDruids = scanForDruids events model.friendlies model.druids
       newLegendaries = Legendaries.update events model.legendaries
 
       (processed, cmd) =
@@ -165,7 +165,7 @@ update msg model = case msg of
         { model
         | legendaries = newLegendaries
         , processed = processed
-        , druids = model.druids ++ newDruids
+        , druids = newDruids
         }
     in
       (newModel, cmd)
@@ -173,10 +173,11 @@ update msg model = case msg of
   OpenFightSelection ->
     ({ model | fightSelectionOpen = not model.fightSelectionOpen }, Cmd.none)
 
-scanForDruids : List WCL.Event -> List WCL.Friendly -> List Druid
-scanForDruids events friendlies =
+scanForDruids : List WCL.Event -> List WCL.Friendly -> Dict Int Druid -> Dict Int Druid
+scanForDruids events friendlies druids =
   let
-    scanForDruid event =
+    addHealingDone amount druid = { druid | healingDone = druid.healingDone + amount}
+    scanForDruid event druids =
       case event of
         WCL.CombatantInfo {sourceID, specID, gear} ->
           if specID == 105 then
@@ -187,15 +188,24 @@ scanForDruids events friendlies =
               name = find ((==) sourceID << .id) friendlies
                 |> Maybe.map .name
                 |> Maybe.withDefault "Unknown"
+              druid = { id = sourceID
+                      , name = name
+                      , legendaries = legendaries
+                      , healingDone = 0
+                      }
             in
-              Just { id = sourceID
-                   , name = name
-                   , legendaries = legendaries
-                   }
+              Dict.insert sourceID druid druids
           else
-            Nothing
+            druids
+
+        WCL.Heal {sourceID, amount} ->
+          Dict.update sourceID (Maybe.map <| addHealingDone amount) druids
+
+        WCL.Absorbed {sourceID, amount} ->
+          Dict.update sourceID (Maybe.map <| addHealingDone amount) druids
 
         _ ->
-          Nothing
+          druids
+
   in
-    List.filterMap scanForDruid events
+    List.foldl scanForDruid druids events

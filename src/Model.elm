@@ -1,5 +1,6 @@
 module Model exposing (Model, Druid, Message, Message(..))
 
+import Dict exposing (Dict)
 import Http
 import Navigation
 
@@ -14,7 +15,7 @@ type alias Model =
   , legendaries : Legendaries.Model
   , processed : Float
   , errorMessage : Maybe String
-  , druids : List Druid
+  , druids : Dict Int Druid
   , fightSelectionOpen : Bool
   , selectedFight : Maybe WCL.Fight
   }
@@ -23,6 +24,7 @@ type alias Druid =
   { id : Int
   , name : String
   , legendaries : List Legendary
+  , healingDone : Int
   }
 
 type Message
