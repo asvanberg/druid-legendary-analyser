@@ -121,14 +121,7 @@ parse event model =
             else
               model
         else
-          case Dict.get ability.id hots of
-            Just expiration ->
-              if expiration < timestamp then
-                setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
-              else
-                model
-            Nothing ->
-              model
+          model
     _ ->
       model
 
