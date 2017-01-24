@@ -20,6 +20,7 @@ It takes about ten seconds per one minute of fighting to analyse.
 | [The Dark Titan's Advice](http://www.wowhead.com/item=137078/the-dark-titans-advice) | 100% | &nbsp; |
 | [Ekowraith, Creator of Worlds](http://www.wowhead.com/item=137015/ekowraith-creator-of-worlds) | 100% | Does not take into account extra damage reduction if playing with [Guardian Affinity](http://www.wowhead.com/spell=197491/guardian-affinity) |
 | [Drape of Shame](http://www.wowhead.com/item=142170) | 100% | While technically not a legendary in color its effect sure qualifies it and quantifying it is useful to show how strong it is. |
+| [Velen's Future Sight](http://www.wowhead.com/spell=235966/velens-future-sight) | 100% | Only the 15% increase is counted. The overhealing spread is visible in the log already. |
 
 Do note that all legendaries that provide extra healing over time effects, such as Aman'Thul's Wisdom or Tearstone of Elune, do not get any credit for extra [mastery stacks](http://www.wowhead.com/spell=77495/mastery-harmony) or other such effects.
 

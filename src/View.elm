@@ -140,6 +140,9 @@ viewLegendary model druid legendary =
 
         Drape ->
           "Drape of Shame"
+
+        Trinket ->
+          "Trinket (15% increase only)"
   in
     li [ class "list-group-item" ]
       [ a [ href <| "http://www.wowhead.com/item=" ++ (toString <| Legendaries.itemId legendary) ] [ text legendaryName ]
