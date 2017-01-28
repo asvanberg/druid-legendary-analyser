@@ -183,7 +183,13 @@ scanForDruids events friendlies druids =
           if specID == 105 then
             let
               isEquipped legendary =
-                List.any ((==) (Legendaries.itemId legendary) << .id) gear
+                case Legendaries.itemId legendary of
+                  Legendaries.Item itemId ->
+                    List.any ((==) itemId << .id) gear
+                  Legendaries.Set _ numRequired items ->
+                    List.filter (\item -> List.member item.id items) gear
+                      |> List.length
+                      |> (<=) numRequired
               legendaries = List.filter isEquipped Legendaries.all
               name = find ((==) sourceID << .id) friendlies
                 |> Maybe.map .name

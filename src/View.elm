@@ -122,30 +122,31 @@ viewLegendary model druid legendary =
       case legendary of
         Shoulders ->
           "Shoulders"
-
         Boots ->
           "Boots"
-
         Wrists ->
           "Wrists"
-
         Tearstone ->
           "Tearstone"
-
         Waist ->
           "Waist"
-
         Chest ->
           "Chest"
-
         Drape ->
           "Drape of Shame"
-
         Trinket ->
           "Trinket (15% increase only)"
+        Tier19 ->
+          "Garb of the Astral Warden"
+    wowheadLink itemId =
+      case itemId of
+        Legendaries.Item id ->
+          "http://www.wowhead.com/item=" ++ (toString id)
+        Legendaries.Set id _ _ ->
+          "http://www.wowhead.com/item-set=" ++ (toString id)
   in
     li [ class "list-group-item" ]
-      [ a [ href <| "http://www.wowhead.com/item=" ++ (toString <| Legendaries.itemId legendary) ] [ text legendaryName ]
+      [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ text legendaryName ]
       , span [ class "pull-right" ] [ text <| thousandSep bonusHealing, text " (", text <| toString percentage, text "%)" ]
       ]
 
