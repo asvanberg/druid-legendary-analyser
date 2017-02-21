@@ -1,4 +1,4 @@
-module WarcraftLogs exposing (ApiKey, getFights, getEvents)
+module WarcraftLogs exposing (getFights, getEvents)
 
 import Http
 import Json.Decode exposing (..)
@@ -7,19 +7,17 @@ import Time exposing (Time)
 import WarcraftLogs.Models exposing (..)
 
 type alias ReportCode = String
-type alias ApiKey = String
 
 -- Does it work using one for everyone?
 -- Are they meant for tools or personal use?
-defaultApiKey : ApiKey
-defaultApiKey = "087783eb78c21061d028831d2344d118"
+apiKey : String
+apiKey = "087783eb78c21061d028831d2344d118"
 
 -- The random number is used to circumvent browser caching if you're following
 -- a live log and want new fights to show up.
-getFights : Maybe ApiKey -> ReportCode -> Int -> Http.Request (List Fight, List Friendly)
-getFights maybeApiKey reportCode randomNumber =
+getFights : ReportCode -> Int -> Http.Request (List Fight, List Friendly)
+getFights reportCode randomNumber =
   let
-    apiKey = Maybe.withDefault defaultApiKey maybeApiKey
     url = "https://www.warcraftlogs.com/v1/report/fights/" ++ reportCode
       ++ "?api_key=" ++ apiKey
       ++ "&" ++ (toString randomNumber)
@@ -28,10 +26,9 @@ getFights maybeApiKey reportCode randomNumber =
   in
     Http.get url (map2 (,) fights friendlies)
 
-getEvents : Maybe ApiKey -> ReportCode -> Time -> Time -> Http.Request EventPage
-getEvents maybeApiKey reportCode start end =
+getEvents : ReportCode -> Time -> Time -> Http.Request EventPage
+getEvents reportCode start end =
   let
-    apiKey = Maybe.withDefault defaultApiKey maybeApiKey
     url = "https://www.warcraftlogs.com/v1/report/events/" ++ reportCode
       ++ "?api_key=" ++ apiKey
       ++ "&start=" ++ toString start

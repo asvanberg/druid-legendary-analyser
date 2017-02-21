@@ -35,8 +35,6 @@ init location =
     , druids = Dict.empty
     , fightSelectionOpen = False
     , selectedFight = Nothing
-    , showingApiKey = False
-    , apiKey = Nothing
     }
   in update (UrlChange location) model
 
@@ -88,7 +86,7 @@ update msg model = case msg of
   GetFights toAnalyze (Just randomNumber)  ->
     let
       cmd = Http.send (FightsRetrieved toAnalyze)
-        <| WarcraftLogs.getFights model.apiKey model.reportCode randomNumber
+        <| WarcraftLogs.getFights model.reportCode randomNumber
     in (model, cmd)
 
   GetFights toAnalyze Nothing ->
@@ -122,7 +120,7 @@ update msg model = case msg of
     let
       -- Start 30 seconds earlier to track pre-hotting
       start = fight.start - 30 * second
-      request = WarcraftLogs.getEvents model.apiKey model.reportCode start fight.end
+      request = WarcraftLogs.getEvents model.reportCode start fight.end
       cmd = Http.send (EventsRetrieved fight) request
       newModel =
         { model
@@ -156,7 +154,7 @@ update msg model = case msg of
         case page.nextPageStartTimestamp of
           Just nextPageStartTimestamp ->
             let
-              request = WarcraftLogs.getEvents model.apiKey model.reportCode nextPageStartTimestamp fight.end
+              request = WarcraftLogs.getEvents model.reportCode nextPageStartTimestamp fight.end
               nextPage = Http.send (EventsRetrieved fight) request
             in ((nextPageStartTimestamp - fight.start) / (fight.end - fight.start), nextPage)
 
@@ -174,22 +172,6 @@ update msg model = case msg of
 
   OpenFightSelection ->
     ({ model | fightSelectionOpen = not model.fightSelectionOpen }, Cmd.none)
-
-  ShowApiKey ->
-    ({ model | showingApiKey = True}, Cmd.none)
-
-  HideApiKey ->
-    ({ model | showingApiKey = False}, Cmd.none)
-
-  EnteringApiKey apiKey ->
-    let
-      newApiKey =
-        if String.isEmpty apiKey then
-          Nothing
-        else
-          Just apiKey
-    in
-      ({ model | apiKey = newApiKey }, Cmd.none)
 
 scanForDruids : List WCL.Event -> List WCL.Friendly -> Dict Int Druid -> Dict Int Druid
 scanForDruids events friendlies druids =

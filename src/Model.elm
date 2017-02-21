@@ -18,8 +18,6 @@ type alias Model =
   , druids : Dict Int Druid
   , fightSelectionOpen : Bool
   , selectedFight : Maybe WCL.Fight
-  , apiKey : Maybe String
-  , showingApiKey : Bool
   }
 
 type alias Druid =
@@ -39,6 +37,3 @@ type Message
   | ClearErrorMessage
   | UrlChange Navigation.Location
   | OpenFightSelection
-  | ShowApiKey
-  | EnteringApiKey String
-  | HideApiKey

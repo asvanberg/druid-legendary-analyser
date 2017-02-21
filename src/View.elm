@@ -25,8 +25,7 @@ view model =
         Nothing ->
           div [] []
     , form [ class "form-inline" ]
-      [ viewApiKey model
-      , div [ class "form-group" ]
+      [ div [ class "form-group" ]
         [ label [ class "sr-only" ] [ text "Report code" ]
         , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode, value model.reportCode ] []
         ]
@@ -51,27 +50,6 @@ view model =
         Nothing ->
           div [] []
     ]
-
-viewApiKey : Model -> Html Message
-viewApiKey model =
-  case model.showingApiKey of
-    False ->
-      a [ class "pull-right form-control-static", onClick ShowApiKey ] [ text "Enter API key" ]
-
-    True ->
-      div [ class "pull-right" ]
-        [ div [ class "form-group" ]
-          [ label [ class "sr-only" ] [ text "API key" ]
-          , input
-            [ class "form-control"
-            , placeholder "Leave blank for default"
-            , onInput EnteringApiKey
-            , value <| Maybe.withDefault "" model.apiKey
-            ]
-            []
-          ]
-        , button [ class "btn btn-default", type_ "button", onClick HideApiKey ] [ text "Done" ]
-        ]
 
 viewFights : Model -> Html Message
 viewFights model =
