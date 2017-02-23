@@ -28,6 +28,10 @@ init =
 spells : List Int
 spells = [ 774, 155777 ]
 
+-- How much time (in ms) we give Tearstone to apply its rejuvenation
+tearstoneApplicationMargin : Time
+tearstoneApplicationMargin = 100
+
 parse : Event -> Model -> Model
 parse event model =
   case event of
@@ -53,7 +57,7 @@ parse event model =
         recentlyWildGrowth =
           case Dict.get targetID druid.wildGrowths of
             Just wgTime ->
-              wgTime > timestamp - 10 -- Wild growth applied in the last 10ms
+              wgTime > timestamp - tearstoneApplicationMargin
             Nothing ->
               False
         hasTearstone = druid.tearstoneEquipped
@@ -88,6 +92,9 @@ parse event model =
             newDruid =
               { druid
               | hots = Set.remove (ability.id, targetID) druid.hots
+              , selfRejuvenation =
+                  if targetID == sourceID then Just (timestamp, ability.id)
+                  else druid.selfRejuvenation
               }
           in
             updateDruid sourceID newDruid model
@@ -103,7 +110,7 @@ parse event model =
           if sourceID == (Maybe.withDefault 0 targetID) then
             case druid.selfRejuvenation of
               Just (selfRejuvTime, selfRejuvSpellId) ->
-                if selfRejuvTime == timestamp then
+                if selfRejuvTime >= (timestamp - 10) then -- They are not always the exact same timestamp
                   let
                     newDruid =
                       { druid
