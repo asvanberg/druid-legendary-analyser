@@ -2,7 +2,6 @@ module Legendaries exposing (ItemID, ItemID(..), Legendary, Legendary(..), Model
 
 import Legendaries.Boots as Boots
 import Legendaries.Chest as Chest
-import Legendaries.Shoulders as Shoulders
 import Legendaries.Wrists as Wrists
 import Legendaries.Tearstone as Tearstone
 import Legendaries.Waist as Waist
@@ -14,7 +13,6 @@ import WarcraftLogs.Models as WCL
 
 type Model = Model
   { boots : Boots.Model
-  , shoulders : Shoulders.Model
   , wrists : Wrists.Model
   , tearstone : Tearstone.Model
   , waist : Waist.Model
@@ -24,9 +22,9 @@ type Model = Model
   , tier19 : Tier19.Model
   }
 
-type Legendary = Shoulders | Wrists | Boots | Tearstone | Waist | Chest | Drape | Trinket | Tier19
+type Legendary = Wrists | Boots | Tearstone | Waist | Chest | Drape | Trinket | Tier19
 all : List Legendary
-all = [ Shoulders, Wrists, Boots, Tearstone, Waist, Chest, Drape, Trinket, Tier19 ]
+all = [ Wrists, Boots, Tearstone, Waist, Chest, Drape, Trinket, Tier19 ]
 
 type ItemID
   = Item Int
@@ -35,7 +33,6 @@ type ItemID
 itemId : Legendary -> ItemID
 itemId legendary =
   case legendary of
-    Shoulders -> Item 137072
     Wrists -> Item 137095
     Boots -> Item 137026
     Tearstone -> Item 137042
@@ -48,7 +45,6 @@ itemId legendary =
 init : Model
 init = Model
   { boots = Boots.init
-  , shoulders = Shoulders.init
   , wrists = Wrists.init
   , tearstone = Tearstone.init
   , waist = Waist.init
@@ -62,7 +58,6 @@ update : List WCL.Event -> Model -> Model
 update events (Model model) =
   let
     newBoots = List.foldl Boots.parse model.boots events
-    newShoulders = List.foldl Shoulders.parse model.shoulders events
     newWrists = List.foldl Wrists.parse model.wrists events
     newTearstone = List.foldl Tearstone.parse model.tearstone events
     newWaist = List.foldl Waist.parse model.waist events
@@ -74,7 +69,6 @@ update events (Model model) =
     Model
       { model
       | boots = newBoots
-      , shoulders = newShoulders
       , wrists = newWrists
       , tearstone = newTearstone
       , waist = newWaist
@@ -91,8 +85,6 @@ bonusHealing legendary (Model model) sourceID =
       case legendary of
         Boots ->
           Boots.bonusHealing model.boots
-        Shoulders ->
-          Shoulders.bonusHealing model.shoulders
         Wrists ->
           Wrists.bonusHealing model.wrists
         Tearstone ->

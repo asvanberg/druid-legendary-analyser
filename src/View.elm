@@ -120,8 +120,6 @@ viewLegendary model druid legendary =
     percentage = toFloat (bonusHealing * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
     legendaryName =
       case legendary of
-        Shoulders ->
-          "Shoulders"
         Boots ->
           "Boots"
         Wrists ->
