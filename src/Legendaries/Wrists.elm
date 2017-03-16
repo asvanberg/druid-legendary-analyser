@@ -25,13 +25,10 @@ type alias Duration = Time
 
 hots : Dict Hot Duration
 hots = Dict.fromList
-  [ (774, 15 * second) -- Rejuv
-  , (155777, 15 * second) -- Germ
-  , (200389, 6 * second) -- Cultivation
+  [ (200389, 6 * second) -- Cultivation
   , (48438, 7 * second) -- Wild growth
   , (102352, 8 * second) -- Cenarion ward
-  , (33763, 15 * second) -- Lifebloom
-  , (8936, 12 * second) -- Wild growth
+  , (8936, 12 * second) -- Regrowth
   ]
 
 bonusDuration : Druid -> Hot -> Duration
@@ -129,34 +126,21 @@ parse event model =
         druid = getDruid model sourceID
         hots = getHots druid targetID
       in
-        if ability.id == 189853 then -- Dreamwalker
-          let
-            dreamwalkerSpells = [774, 155777]
-            isExpired hotId =
-              Dict.get hotId hots
-                |> Maybe.map (\expiration -> expiration < timestamp)
-                |> Maybe.withDefault True
-          in
-            if List.all isExpired dreamwalkerSpells then
-              setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+        case Dict.get ability.id hots of
+          Just expiration ->
+            if expiration < timestamp then
+              case Dict.get targetID druid.swiftmendTargets of
+                Just lastSwiftmend ->
+                  if timestamp - lastSwiftmend < 16 * second then
+                    setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+                  else
+                    model
+                Nothing ->
+                  model
             else
               model
-        else
-          case Dict.get ability.id hots of
-            Just expiration ->
-              if expiration < timestamp then
-                case Dict.get targetID druid.swiftmendTargets of
-                  Just lastSwiftmend ->
-                    if timestamp - lastSwiftmend < 16 * second then
-                      setDruid model sourceID { druid | bonusHealing = druid.bonusHealing + amount }
-                    else
-                      model
-                  Nothing ->
-                    model
-              else
-                model
-            Nothing ->
-              model
+          Nothing ->
+            model
     _ ->
       model
 
