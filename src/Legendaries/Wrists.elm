@@ -121,14 +121,14 @@ parse event model =
               model
         _ ->
           model
-    Heal {timestamp, sourceID, targetID, ability, amount} ->
+    Heal {timestamp, sourceID, targetID, ability, amount, tick} ->
       let
         druid = getDruid model sourceID
         hots = getHots druid targetID
       in
         case Dict.get ability.id hots of
           Just expiration ->
-            if expiration < timestamp then
+            if expiration < timestamp && tick then
               case Dict.get targetID druid.swiftmendTargets of
                 Just lastSwiftmend ->
                   if timestamp - lastSwiftmend < 16 * second then

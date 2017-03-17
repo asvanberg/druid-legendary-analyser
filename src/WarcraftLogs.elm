@@ -181,18 +181,20 @@ heal =
   let
     part1 = targetedAbilityAmount
     part2 =
-      map4 (\overheal hitPoints maxHitPoints hitType ->
+      map5 (\overheal hitPoints maxHitPoints hitType tick ->
         { overheal = overheal
         , hitPoints = hitPoints
         , maxHitPoints = maxHitPoints
         , hitType = hitType
+        , tick = tick
         })
         (map (Maybe.withDefault 0) <| maybe <| field "overheal" int)
         (field "hitPoints" int)
         (field "maxHitPoints" int)
         (field "hitType" int)
+        (map (Maybe.withDefault False) <| maybe <| field "tick" bool)
   in
-    map2 (\{timestamp, sourceID, targetID, ability ,amount} {overheal, hitType, hitPoints, maxHitPoints} ->
+    map2 (\{timestamp, sourceID, targetID, ability, amount} {overheal, hitType, hitPoints, maxHitPoints, tick} ->
       Heal
         { timestamp = timestamp
         , sourceID = sourceID
@@ -203,6 +205,7 @@ heal =
         , hitPoints = hitPoints
         , maxHitPoints = maxHitPoints
         , hitType = hitType
+        , tick = tick
         }
       )
       part1

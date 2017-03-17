@@ -62,6 +62,7 @@ type Event
     , hitPoints : Int -- Target hit points _AFTER_ the heal landed
     , maxHitPoints : Int -- target max hit points
     , hitType : Int
+    , tick : Bool
     }
   | Absorbed
     { timestamp : Time
