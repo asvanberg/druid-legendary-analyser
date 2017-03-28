@@ -23,11 +23,11 @@ parse event (Model model) =
       if ability.id == 157982 then
         let
           healthBeforeHeal = hitPoints - amount
-          halfHealth = maxHitPoints // 2
+          healthBreakpoint = maxHitPoints * 60 // 100
         in
-          if (healthBeforeHeal < halfHealth) then
+          if (healthBeforeHeal <= healthBreakpoint) then
             let
-              baseHeal = (amount + overheal) // 3 * 2
+              baseHeal = (amount + overheal) * 100 // 160
               bonusHealing = max 0 (amount - baseHeal)
               currentBonus = Dict.get sourceID model ? 0
             in
