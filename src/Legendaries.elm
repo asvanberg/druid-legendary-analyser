@@ -8,6 +8,7 @@ import Legendaries.Waist as Waist
 import Legendaries.Drape as Drape
 import Legendaries.Trinket as Trinket
 import Legendaries.Tier19 as Tier19
+import Legendaries.Shoulders as Shoulders
 
 import WarcraftLogs.Models as WCL
 
@@ -20,11 +21,12 @@ type Model = Model
   , drape : Drape.Model
   , trinket : Trinket.Model
   , tier19 : Tier19.Model
+  , shoulders : Shoulders.Model
   }
 
-type Legendary = Wrists | Boots | Tearstone | Waist | Chest | Drape | Trinket | Tier19
+type Legendary = Wrists | Boots | Tearstone | Waist | Chest | Drape | Trinket | Tier19 | Shoulders
 all : List Legendary
-all = [ Wrists, Boots, Tearstone, Waist, Chest, Drape, Trinket, Tier19 ]
+all = [ Wrists, Boots, Tearstone, Waist, Chest, Drape, Trinket, Tier19, Shoulders ]
 
 type ItemID
   = Item Int
@@ -41,6 +43,7 @@ itemId legendary =
     Drape -> Item 142170
     Trinket -> Item 144258
     Tier19 -> Set 1283 4 [ 138324, 138327, 138330, 138333, 138336, 138366 ]
+    Shoulders -> Item 137072
 
 init : Model
 init = Model
@@ -52,6 +55,7 @@ init = Model
   , drape = Drape.init
   , trinket = Trinket.init
   , tier19 = Tier19.init
+  , shoulders = Shoulders.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -65,6 +69,7 @@ update events (Model model) =
     newDrape = List.foldl Drape.parse model.drape events
     newTrinket = List.foldl Trinket.parse model.trinket events
     newTier19 = List.foldl Tier19.parse model.tier19 events
+    newShoulders =List.foldl Shoulders.parse model.shoulders events
   in
     Model
       { model
@@ -76,6 +81,7 @@ update events (Model model) =
       , drape = newDrape
       , trinket = newTrinket
       , tier19 = newTier19
+      , shoulders = newShoulders
       }
 
 bonusHealing : Legendary -> Model -> Int -> Int
@@ -99,5 +105,7 @@ bonusHealing legendary (Model model) sourceID =
           Trinket.bonusHealing model.trinket
         Tier19 ->
           Tier19.bonusHealing model.tier19
+        Shoulders ->
+          Shoulders.bonusHealing model.shoulders
   in
     legendaryBonushealing sourceID

@@ -136,6 +136,8 @@ viewLegendary model druid legendary =
           "Trinket (15% increase only)"
         Tier19 ->
           "Garb of the Astral Warden"
+        Shoulders ->
+          "Shoulders"
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->

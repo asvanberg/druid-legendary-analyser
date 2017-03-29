@@ -13,7 +13,7 @@ It takes about ten seconds per one minute of fighting to analyse.
 ## Supported Legendaries
 | Legendary | Accuracy | Note |
 | --- | --- | --- |
-| [Aman'Thul's Wisdom](http://www.wowhead.com/item=137072/amanthuls-wisdom) | N/A | No accurate numerical evalution can be done, especially with four piece [T19](http://www.wowhead.com/item-set=1283/garb-of-the-astral-warden) |
+| [Aman'Thul's Wisdom](http://www.wowhead.com/item=137072/amanthuls-wisdom) | 80% | Tracks healing done in the window of time added by the shoulders. |
 | [Eldraith, Bonds of Aglaya](http://www.wowhead.com/item=137095/edraith-bonds-of-aglaya) | 80% | Benefit is calculated by checking healing done after the expected expiration of certain healing over time spells taking [Flourish](http://www.wowhead.com/spell=197721/flourish) into account. |
 | [Essence of Infusion](http://www.wowhead.com/item=137026/essence-of-infusion) | 100% | &nbsp; |
 | [Tearstone of Elune](http://www.wowhead.com/item=137042/tearstone-of-elune) | 80% | Tracks healing from all "tearstone" [rejuvenations](http://www.wowhead.com/spell=774/rejuvenation). Any Dreamwalker healing on those targets is also counted. A rejuvenation is considered "tearstone" if it was applied after a [Wild Growth](http://www.wowhead.com/spell=48438/wild-growth) cast and before your next manual rejuvenation application. |
