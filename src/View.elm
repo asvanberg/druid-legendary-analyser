@@ -2,7 +2,7 @@ module View exposing (view)
 
 import Dict
 import Html exposing (..)
-import Html.Attributes exposing (class, classList, href, placeholder, style, type_, value)
+import Html.Attributes exposing (autofocus, class, classList, href, placeholder, style, type_, value)
 import Html.Events exposing (defaultOptions, onClick, onInput, onWithOptions)
 import Json.Decode as Decode
 import Regex as R
@@ -27,7 +27,7 @@ view model =
     , form [ class "form-inline" ]
       [ div [ class "form-group" ]
         [ label [ class "sr-only" ] [ text "Report code" ]
-        , input [ class "form-control", placeholder "Enter report code", onInput EnteringReportCode, value model.reportCode ] []
+        , input [ autofocus <| String.isEmpty model.reportCode, class "form-control", placeholder "Enter report code", onInput EnteringReportCode, value model.reportCode ] []
         ]
       , button [ class "btn btn-default", onClick <| GetFights Nothing Nothing, type_ "button" ] [ text "Get fights" ]
       , div
@@ -104,7 +104,7 @@ fightTitle fights fight =
 
 viewDruid : Model -> Druid -> Html Message
 viewDruid model druid =
-  div [ class "col-lg-6 col-md-6 col-sm-6" ]
+  div [ class "col-lg-6 col-md-12 col-sm-6" ]
     [ div [ class "panel panel-default" ]
       [ div [class "panel-heading"] [ text druid.name ]
       , ul [ class "list-group" ]
