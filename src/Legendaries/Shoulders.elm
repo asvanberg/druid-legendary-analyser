@@ -202,7 +202,7 @@ handleEffect timestamp ({applied, expiration, effects, lastTick} as hot) =
       (Tick durationLeft) :: rest ->
         let
           timePassed =
-            timestamp - lastTick
+            timestamp - (max lastTick expiration)
           newDurationLeft =
             durationLeft - timePassed
         in
@@ -214,7 +214,7 @@ handleEffect timestamp ({applied, expiration, effects, lastTick} as hot) =
       (Flourish durationLeft) :: rest ->
         let
           timePassed =
-            timestamp - lastTick
+            timestamp - (max lastTick expiration)
           newDurationLeft =
             durationLeft - timePassed
         in
@@ -226,7 +226,7 @@ handleEffect timestamp ({applied, expiration, effects, lastTick} as hot) =
       (Bracer durationLeft) :: rest ->
         let
           timePassed =
-            timestamp - lastTick
+            timestamp - (max lastTick expiration)
           newDurationLeft =
             durationLeft - timePassed
         in
