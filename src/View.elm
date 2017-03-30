@@ -92,8 +92,17 @@ fightTitle fights fight =
     minutes = duration // 60
     seconds = duration % 60
     durationString = (toString minutes) ++ ":" ++ (zeroPad seconds)
+    difficultyName =
+      case fight.difficulty of
+        Just 5 -> "Mythic"
+        Just 4 -> "Heroic"
+        Just 3 -> "Normal"
+        Just 1 -> "LFR"
+        _ -> ""
   in
-    fight.name
+    difficultyName
+      ++ " "
+      ++ fight.name
       ++ " "
       ++ (if fight.kill then "kill" else "wipe #" ++ (toString wipeNumber))
       ++ " "
