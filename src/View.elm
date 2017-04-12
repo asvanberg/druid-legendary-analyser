@@ -147,12 +147,16 @@ viewLegendary model druid legendary =
           "Garb of the Astral Warden"
         Shoulders ->
           "Shoulders"
+        DeepRooted ->
+          "Deep Rooted (rejuv only)"
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
           "http://www.wowhead.com/item=" ++ (toString id)
         Legendaries.Set id _ _ ->
           "http://www.wowhead.com/item-set=" ++ (toString id)
+        Legendaries.Trait id ->
+          "http://www.wowhead.com/spell=" ++ (toString id)
   in
     li [ class "list-group-item" ]
       [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ text legendaryName ]

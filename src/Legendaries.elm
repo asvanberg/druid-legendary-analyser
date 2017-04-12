@@ -24,13 +24,36 @@ type Model = Model
   , shoulders : Shoulders.Model
   }
 
-type Legendary = Wrists | Boots | Tearstone | Waist | Chest | Drape | Trinket | Tier19 | Shoulders
+type Legendary
+  = Wrists
+  | Boots
+  | Tearstone
+  | Waist
+  | Chest
+  | Drape
+  | Trinket
+  | Tier19
+  | Shoulders
+  | DeepRooted
+
 all : List Legendary
-all = [ Wrists, Boots, Tearstone, Waist, Chest, Drape, Trinket, Tier19, Shoulders ]
+all =
+  [ Wrists
+  , Boots
+  , Tearstone
+  , Waist
+  , Chest
+  , Drape
+  , Trinket
+  , Tier19
+  , Shoulders
+  , DeepRooted
+  ]
 
 type ItemID
   = Item Int
   | Set Int Int (List Int)
+  | Trait Int
 
 itemId : Legendary -> ItemID
 itemId legendary =
@@ -44,6 +67,7 @@ itemId legendary =
     Trinket -> Item 144258
     Tier19 -> Set 1283 4 [ 138324, 138327, 138330, 138333, 138336, 138366 ]
     Shoulders -> Item 137072
+    DeepRooted -> Trait 238122
 
 init : Model
 init = Model
@@ -106,6 +130,8 @@ bonusHealing legendary (Model model) sourceID =
         Tier19 ->
           Tier19.bonusHealing model.tier19
         Shoulders ->
-          Shoulders.bonusHealing model.shoulders
+          Shoulders.bonusHealing model.shoulders Shoulders.Shoulders
+        DeepRooted ->
+          Shoulders.bonusHealing model.shoulders Shoulders.DeepRootedTrait
   in
     legendaryBonushealing sourceID

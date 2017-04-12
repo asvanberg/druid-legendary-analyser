@@ -1,21 +1,29 @@
 module Legendaries.Shoulders exposing (..)
 
 import Dict exposing (Dict)
+import Legendaries.Haste as Haste exposing (Haste)
 import Time exposing (Time, second)
 import Util.List exposing (find)
-import Util.Maybe exposing ((?))
+import Util.Maybe exposing ((?), isDefined, orElse)
 
 import WarcraftLogs.Models as WCL exposing (Event(..))
 
 type alias CharacterID = Int
 type alias AbilityID = Int
-type Effect = Tick Time | Bracer Time | Flourish Time
+type Effect
+  = Base
+  | Tick
+  | Bracer
+  | Flourish
+  | DeepRooted
 type alias Druid =
   { persistence : Int
+  , deepRooted : Bool
   , bracers : Bool
   , shoulders : Bool
   , hots : Dict (CharacterID, AbilityID) Hot
-  , bonusHealing : Int
+  , bonusHealing : Dict Int Int
+  , haste : Haste
   }
 type alias Hot =
   { applied : Time
@@ -23,9 +31,13 @@ type alias Hot =
   , bonusDuration : Time
   , lastTick : Time
   , numShoulderTicks : Int
-  , effects : List Effect
+  , effects : List (Effect, Time)
   }
 type Model = Model (Dict CharacterID Druid)
+
+type Source
+  = Shoulders
+  | DeepRootedTrait
 
 rejuvenationId : Int
 rejuvenationId = 774
@@ -47,10 +59,10 @@ parse_ event druids =
     EncounterStart _ ->
       let
         resetBonusHealing _ druid =
-          { druid | bonusHealing = 0}
+          { druid | bonusHealing = Dict.empty }
       in
         Dict.map resetBonusHealing druids
-    CombatantInfo {sourceID, specID, artifact, gear} ->
+    CombatantInfo ({sourceID, specID, artifact, gear, spellHasteRating, strength} as info) ->
       let
         druid =
           getDruid druids sourceID
@@ -63,8 +75,11 @@ parse_ event druids =
         newDruid =
           { druid
           | persistence = rank ? 0
+          , deepRooted =
+            isDefined <| find ((==) 238122 << .spellID) artifact
           , shoulders = isEquipped 137072
           , bracers = isEquipped 137095
+          , haste = Haste.init info
           }
       in
         Dict.insert sourceID newDruid druids
@@ -78,7 +93,7 @@ parse_ event druids =
             , bonusDuration = 0
             , numShoulderTicks = 0
             , lastTick = timestamp
-            , effects = []
+            , effects = [(Base, baseDuration druid)]
             }
           newDruid =
             { druid | hots = Dict.insert (targetID, ability.id) hot druid.hots }
@@ -117,7 +132,7 @@ parse_ event druids =
               getDruid druids sourceID
             addFlourishEffect hot =
               { hot
-              | effects = hot.effects ++ [Flourish 6]
+              | effects = hot.effects ++ [(Flourish, 6)]
               , bonusDuration = hot.bonusDuration + 6 * second
               }
             newDruid =
@@ -132,7 +147,7 @@ parse_ event druids =
               getDruid druids sourceID
             addBracerEffect hot =
               { hot
-              | effects = hot.effects ++ [Bracer 10]
+              | effects = hot.effects ++ [(Bracer, 10)]
               , bonusDuration = hot.bonusDuration + 10 * second
               }
             newDruid =
@@ -158,8 +173,25 @@ parse_ event druids =
             { hot
             | numShoulderTicks = hot.numShoulderTicks + 1
             , bonusDuration = hot.bonusDuration + durationOfTick
-            , effects = hot.effects ++ [Tick durationOfTick]
+            , effects = hot.effects ++ [(Tick, durationOfTick)]
             }
+          else
+            hot
+        addDeepRooted remaining hot =
+          if hitPoints < (maxHitPoints * 35 // 100) && druid.deepRooted then
+            let
+              duration =
+                calculateDeepRootedDuration (baseDuration druid) druid.haste
+
+              bonusDuration =
+                duration - remaining
+            in
+              if bonusDuration > 0 then
+                { hot
+                | effects = hot.effects ++ [(DeepRooted, bonusDuration)]
+                }
+              else
+                hot
           else
             hot
         registerLastTick hot =
@@ -173,88 +205,96 @@ parse_ event druids =
 
           Just hot ->
             let
-              (hot0, gaveBonus) =
-                handleEffect timestamp hot
-              hot1 =
-                (addShoulderTick << registerLastTick) hot0
-              bonusHealing =
-                if gaveBonus then amount else 0
+              elapsed =
+                timestamp - hot.lastTick
+
+              newEffects =
+                updateEffectList elapsed hot.effects
+
+              effectSource =
+                Maybe.map Tuple.first
+                  <| (List.head newEffects |> orElse (List.head hot.effects))
+
+              source =
+                case effectSource of
+                  Just Tick ->
+                    Just Shoulders
+
+                  Just DeepRooted ->
+                    Just DeepRootedTrait
+
+                  _ ->
+                    Nothing
+
+              remaining =
+                getRemaining newEffects
+
+              updateHotEffects hot =
+                { hot | effects = newEffects }
+
+              newHot = hot
+                |> updateHotEffects
+                |> addShoulderTick
+                |> addDeepRooted remaining
+                |> registerLastTick
+
               newDruid =
                 { druid
-                | bonusHealing = druid.bonusHealing + bonusHealing
-                , hots = Dict.insert (targetID, ability.id) hot1 druid.hots
+                | hots = Dict.insert (targetID, ability.id) newHot druid.hots
                 }
+
+              druidWithBonusHealing =
+                case source of
+                  Just s ->
+                    { newDruid
+                    | bonusHealing = Dict.update (asInt s) (Maybe.map ((+) amount) >> orElse (Just amount)) newDruid.bonusHealing
+                    }
+
+                  Nothing ->
+                    newDruid
             in
-              Dict.insert sourceID newDruid druids
+              Dict.insert sourceID druidWithBonusHealing druids
+
     _ ->
       druids
 
--- TODO: Remove duplication
-handleEffect : Time -> Hot -> (Hot, Bool)
-handleEffect timestamp ({applied, expiration, effects, lastTick} as hot) =
-  if timestamp < expiration then
-    (hot, False)
-  else
-    case effects of
-      [] ->
-        (hot, False)
-
-      (Tick durationLeft) :: rest ->
-        let
-          timePassed =
-            timestamp - (max lastTick expiration)
-          newDurationLeft =
-            durationLeft - timePassed
-        in
-          if newDurationLeft >= 0 then
-            ({ hot | effects = (Tick newDurationLeft) :: rest }, True)
-          else
-            overlapNextEffect timestamp rest hot (-newDurationLeft)
-
-      (Flourish durationLeft) :: rest ->
-        let
-          timePassed =
-            timestamp - (max lastTick expiration)
-          newDurationLeft =
-            durationLeft - timePassed
-        in
-          if newDurationLeft >= 0 then
-            ({hot | effects = (Flourish newDurationLeft) :: rest}, False)
-          else
-            overlapNextEffect timestamp rest hot (-newDurationLeft)
-
-      (Bracer durationLeft) :: rest ->
-        let
-          timePassed =
-            timestamp - (max lastTick expiration)
-          newDurationLeft =
-            durationLeft - timePassed
-        in
-          if newDurationLeft >= 0 then
-            ({hot | effects = (Bracer newDurationLeft) :: rest}, False)
-          else
-            overlapNextEffect timestamp rest hot (-newDurationLeft)
-
--- TODO: Remove duplication
-overlapNextEffect : Time -> List Effect -> Hot -> Time -> (Hot, Bool)
-overlapNextEffect timestamp rest ({expiration} as hot) overlappingDuration =
-  case rest of
+updateEffectList : Time -> List (Effect, Time) -> List (Effect, Time)
+updateEffectList elapsed effects =
+  case effects of
     [] ->
-      (hot, False)
+      []
 
-    (Tick durationLeft) :: rest ->
-      ({ hot | effects = (Tick <| durationLeft - overlappingDuration) :: rest }, True)
+    (effect, remaining) :: rest ->
+      if remaining > elapsed then
+        (effect, (remaining - elapsed)) :: rest
+      else
+        updateEffectList (elapsed - remaining) rest
 
-    (Flourish durationLeft) :: rest ->
-      ({hot | effects = (Flourish <| durationLeft - overlappingDuration) :: rest }, False)
+getRemaining : List (Effect, Time) -> Time
+getRemaining =
+  List.sum << List.map Tuple.second
 
-    (Bracer durationLeft) :: rest ->
-      ({hot | effects = (Bracer <| durationLeft - overlappingDuration) :: rest }, False)
+calculateDeepRootedDuration : Time -> Haste -> Time
+calculateDeepRootedDuration duration haste =
+  let
+    hasteMultiplier =
+      Haste.totalHaste haste
+
+    tickDuration =
+      (3 * second) / hasteMultiplier
+
+    durationPlusTick =
+      duration + tickDuration
+
+    numTicks =
+      round <| durationPlusTick / tickDuration
+  in
+    (toFloat numTicks) * tickDuration
 
 refreshHot : Time -> Druid -> Hot -> Hot
-refreshHot timestamp druid ({expiration, bonusDuration} as hot) =
+refreshHot timestamp druid ({expiration, effects, lastTick} as hot) =
   let
-    remaining = expiration + bonusDuration - timestamp
+    remaining = (getRemaining effects) - (timestamp - lastTick)
     maxPandemic = 0.3 * baseDuration druid
     pandemicBonus = clamp 0 maxPandemic remaining
     duration = baseDuration druid + pandemicBonus
@@ -268,9 +308,9 @@ refreshHot timestamp druid ({expiration, bonusDuration} as hot) =
     , effects = []
     }
 
-bonusHealing : Model -> CharacterID -> Int
-bonusHealing (Model druids) druid =
-  .bonusHealing <| getDruid druids druid
+bonusHealing : Model -> Source -> CharacterID -> Int
+bonusHealing (Model druids) source druid =
+  Maybe.withDefault 0 <| Dict.get (asInt source) <| .bonusHealing <| getDruid druids druid
 
 getDruid : Dict CharacterID Druid -> CharacterID -> Druid
 getDruid druids characterID =
@@ -284,10 +324,21 @@ getDruid druids characterID =
         { bracers = False
         , shoulders = False
         , persistence = 0
+        , deepRooted = False
         , hots = Dict.empty
-        , bonusHealing = 0
+        , bonusHealing = Dict.empty
+        , haste = Haste.unknown
         }
 
 getHot : Druid -> AbilityID -> CharacterID -> Maybe Hot
 getHot druid abilityID characterID =
   Dict.get (characterID, abilityID) druid.hots
+
+asInt : Source -> Int
+asInt source =
+  case source of
+    Shoulders ->
+      0
+
+    DeepRootedTrait ->
+      1

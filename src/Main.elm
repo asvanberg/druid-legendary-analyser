@@ -11,6 +11,7 @@ import Model exposing (..)
 import View exposing (view)
 
 import Util.List exposing (find)
+import Util.Maybe exposing (isDefined)
 
 import WarcraftLogs
 import WarcraftLogs.Models as WCL
@@ -179,7 +180,7 @@ scanForDruids events friendlies druids =
     addHealingDone amount druid = { druid | healingDone = druid.healingDone + amount}
     scanForDruid event druids =
       case event of
-        WCL.CombatantInfo {sourceID, specID, gear} ->
+        WCL.CombatantInfo {sourceID, specID, gear, artifact} ->
           if specID == 105 then
             let
               isEquipped legendary =
@@ -190,6 +191,8 @@ scanForDruids events friendlies druids =
                     List.filter (\item -> List.member item.id items) gear
                       |> List.length
                       |> (<=) numRequired
+                  Legendaries.Trait spellId ->
+                    isDefined <| find ((==) spellId << .spellID) artifact
               legendaries = List.filter isEquipped Legendaries.all
               name = find ((==) sourceID << .id) friendlies
                 |> Maybe.map .name

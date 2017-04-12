@@ -36,8 +36,11 @@ type Event
   | CombatantInfo
     { sourceID : Int
     , specID : Int -- See Blizzard_TalentUI.lua
+    , spellHasteRating : Int
+    , strength : Int
     , artifact : List Trait
     , gear : List Item
+    , auras : List Aura
     }
 
   | BeginCast
@@ -177,10 +180,15 @@ type alias Trait =
 
 type alias Item =
   { id : Int
+  , itemLevel : Int
   }
 
 type alias Ability =
   { id : Int
   , name : String
   --, school : Int -- bitset see Blizzard Constants.lua
+  }
+
+type alias Aura =
+  { id : Int
   }

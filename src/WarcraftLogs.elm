@@ -213,16 +213,22 @@ heal =
 
 combatantinfo : Decoder Event
 combatantinfo =
-  map4 (\sourceID specID artifact gear -> CombatantInfo
+  map7 (\sourceID specID artifact gear spellHasteRating strength auras -> CombatantInfo
     { sourceID = sourceID
     , specID = specID
     , artifact = artifact
     , gear = gear
+    , spellHasteRating = spellHasteRating
+    , strength = strength
+    , auras = auras
     })
     (field "sourceID" int)
     (field "specID" int)
     (field "artifact" (list trait))
     (field "gear" (list item))
+    (field "hasteSpell" int)
+    (field "strength" int)
+    (field "auras" (list aura))
 
 trait : Decoder Trait
 trait =
@@ -233,8 +239,14 @@ trait =
 
 item : Decoder Item
 item =
-  map Item
+  map2 Item
     (field "id" int)
+    (field "itemLevel" int)
+
+aura : Decoder Aura
+aura =
+  map Aura
+    (field "ability" int)
 
 encounterstart : Decoder Event
 encounterstart =
