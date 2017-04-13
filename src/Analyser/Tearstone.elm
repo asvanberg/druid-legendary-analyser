@@ -1,4 +1,4 @@
-module Legendaries.Tearstone exposing (Model, init, parse, bonusHealing)
+module Analyser.Tearstone exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 import Set exposing (Set)

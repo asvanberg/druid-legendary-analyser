@@ -28,7 +28,7 @@ Do note that all legendaries that provide extra healing over time effects, such 
 
 ### Parsers
 To get more detailed usage of how the parsers for individual legendaries work
-check https://github.com/asvanberg/druid-legendary-analyser/tree/master/src/Legendaries
+check https://github.com/asvanberg/druid-legendary-analyser/tree/master/src/Analyser
 
 Suggestions and improvements are always welcome.
 

@@ -1,7 +1,7 @@
-module Legendaries.Shoulders exposing (..)
+module Analyser.Rejuvenation exposing (..)
 
 import Dict exposing (Dict)
-import Legendaries.Haste as Haste exposing (Haste)
+import Analyser.Haste as Haste exposing (Haste)
 import Time exposing (Time, second)
 import Util.List exposing (find)
 import Util.Maybe exposing ((?), isDefined, orElse)

@@ -1,4 +1,4 @@
-module Legendaries.Waist exposing (Model, init, parse, bonusHealing)
+module Analyser.Waist exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 import Time exposing (Time, millisecond)

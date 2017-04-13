@@ -1,4 +1,4 @@
-module Legendaries.Haste exposing (Haste, init, totalHaste, unknown)
+module Analyser.Haste exposing (Haste, init, totalHaste, unknown)
 
 import Dict exposing (Dict)
 

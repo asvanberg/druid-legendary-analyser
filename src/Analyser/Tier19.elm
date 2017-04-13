@@ -1,4 +1,4 @@
-module Legendaries.Tier19 exposing (Model, init, parse, bonusHealing)
+module Analyser.Tier19 exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 import Set exposing (Set)

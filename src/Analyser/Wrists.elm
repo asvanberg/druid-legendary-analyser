@@ -1,4 +1,4 @@
-module Legendaries.Wrists exposing (Model, init, parse, bonusHealing)
+module Analyser.Wrists exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 import Time exposing (..)

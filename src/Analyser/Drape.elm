@@ -1,4 +1,4 @@
-module Legendaries.Drape exposing (Model, init, parse, bonusHealing)
+module Analyser.Drape exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 

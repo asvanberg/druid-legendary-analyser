@@ -1,14 +1,14 @@
 module Legendaries exposing (ItemID, ItemID(..), Legendary, Legendary(..), Model, all, itemId, init, update, bonusHealing)
 
-import Legendaries.Boots as Boots
-import Legendaries.Chest as Chest
-import Legendaries.Wrists as Wrists
-import Legendaries.Tearstone as Tearstone
-import Legendaries.Waist as Waist
-import Legendaries.Drape as Drape
-import Legendaries.Trinket as Trinket
-import Legendaries.Tier19 as Tier19
-import Legendaries.Shoulders as Shoulders
+import Analyser.Boots as Boots
+import Analyser.Chest as Chest
+import Analyser.Wrists as Wrists
+import Analyser.Tearstone as Tearstone
+import Analyser.Waist as Waist
+import Analyser.Drape as Drape
+import Analyser.Trinket as Trinket
+import Analyser.Tier19 as Tier19
+import Analyser.Rejuvenation as Rejuvenation
 
 import WarcraftLogs.Models as WCL
 
@@ -21,7 +21,7 @@ type Model = Model
   , drape : Drape.Model
   , trinket : Trinket.Model
   , tier19 : Tier19.Model
-  , shoulders : Shoulders.Model
+  , rejuvenation : Rejuvenation.Model
   }
 
 type Legendary
@@ -79,7 +79,7 @@ init = Model
   , drape = Drape.init
   , trinket = Trinket.init
   , tier19 = Tier19.init
-  , shoulders = Shoulders.init
+  , rejuvenation = Rejuvenation.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -93,7 +93,7 @@ update events (Model model) =
     newDrape = List.foldl Drape.parse model.drape events
     newTrinket = List.foldl Trinket.parse model.trinket events
     newTier19 = List.foldl Tier19.parse model.tier19 events
-    newShoulders =List.foldl Shoulders.parse model.shoulders events
+    newRejuvenation = List.foldl Rejuvenation.parse model.rejuvenation events
   in
     Model
       { model
@@ -105,7 +105,7 @@ update events (Model model) =
       , drape = newDrape
       , trinket = newTrinket
       , tier19 = newTier19
-      , shoulders = newShoulders
+      , rejuvenation = newRejuvenation
       }
 
 bonusHealing : Legendary -> Model -> Int -> Int
@@ -130,8 +130,8 @@ bonusHealing legendary (Model model) sourceID =
         Tier19 ->
           Tier19.bonusHealing model.tier19
         Shoulders ->
-          Shoulders.bonusHealing model.shoulders Shoulders.Shoulders
+          Rejuvenation.bonusHealing model.rejuvenation Rejuvenation.Shoulders
         DeepRooted ->
-          Shoulders.bonusHealing model.shoulders Shoulders.DeepRootedTrait
+          Rejuvenation.bonusHealing model.rejuvenation Rejuvenation.DeepRootedTrait
   in
     legendaryBonushealing sourceID

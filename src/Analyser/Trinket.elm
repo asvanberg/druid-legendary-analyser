@@ -1,4 +1,4 @@
-module Legendaries.Trinket exposing (Model, init, parse, bonusHealing)
+module Analyser.Trinket exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 import WarcraftLogs.Models exposing (Event, Event(..))

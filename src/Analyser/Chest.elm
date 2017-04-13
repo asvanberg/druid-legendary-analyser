@@ -1,4 +1,4 @@
-module Legendaries.Chest exposing (Model, init, parse, bonusHealing)
+module Analyser.Chest exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 

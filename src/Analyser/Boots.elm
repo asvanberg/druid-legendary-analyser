@@ -1,4 +1,4 @@
-module Legendaries.Boots exposing (Model, init, parse, bonusHealing)
+module Analyser.Boots exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
 
