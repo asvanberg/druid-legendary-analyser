@@ -124,6 +124,18 @@ parse_ event druids =
       else
         druids
 
+    RemoveBuff {sourceID, targetID, ability} ->
+      let
+        druid =
+          getDruid druids sourceID
+
+        newDruid =
+          { druid
+          | hots = Dict.remove (targetID, ability.id) druid.hots
+          }
+      in
+        Dict.insert sourceID newDruid druids
+
     Cast {sourceID, ability} ->
       case ability.id of
         197721 -> -- Flourish
@@ -201,7 +213,14 @@ parse_ event druids =
       in
         case maybeHot of
           Nothing ->
-            druids
+            if ability.id == 189853 then
+              let
+                newDruid =
+                  assignDreamwalker druid timestamp targetID amount
+              in
+                Dict.insert sourceID newDruid druids
+            else
+              druids
 
           Just hot ->
             let
@@ -307,6 +326,66 @@ refreshHot timestamp druid ({expiration, effects, lastTick} as hot) =
     , lastTick = timestamp
     , effects = []
     }
+
+assignDreamwalker : Druid -> Time -> CharacterID -> Int -> Druid
+assignDreamwalker druid timestamp targetID amount =
+  let
+    getNextEffect hot =
+      let
+        elapsed =
+          timestamp - hot.lastTick
+      in
+        case hot.effects of
+          (effect, remaining) :: rest ->
+            if remaining >= elapsed then
+              Just effect
+            else
+              Maybe.map Tuple.first <| List.head rest
+          [] ->
+            Nothing
+
+    rejuvHot =
+      getHot druid 774 targetID
+
+    germHot =
+      getHot druid 155777 targetID
+
+    effect =
+      case (rejuvHot, germHot) of
+        (Just rejuv, Just germ) ->
+          if rejuv.applied < germ.applied then
+            getNextEffect rejuv |> orElse (getNextEffect germ)
+          else
+            getNextEffect germ |> orElse (getNextEffect rejuv)
+
+        (Just rejuv, Nothing) ->
+          getNextEffect rejuv
+
+        (Nothing, Just germ) ->
+          getNextEffect germ
+
+        (Nothing, Nothing) ->
+          Nothing
+
+    source =
+      case effect of
+        Just Tick ->
+          Just Shoulders
+
+        Just DeepRooted ->
+          Just DeepRootedTrait
+
+        _ ->
+          Nothing
+  in
+    case source of
+      Just s ->
+        { druid
+        | bonusHealing = Dict.update (asInt s) (Maybe.map ((+) amount) >> orElse (Just amount)) druid.bonusHealing
+        }
+
+      Nothing ->
+        druid
 
 bonusHealing : Model -> Source -> CharacterID -> Int
 bonusHealing (Model druids) source druid =
