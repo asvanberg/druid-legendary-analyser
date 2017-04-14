@@ -6,6 +6,7 @@ import Navigation
 import Random
 import Time exposing (second)
 
+import Analyser
 import Legendaries exposing (Legendary, Legendary(..))
 import Model exposing (..)
 import View exposing (view)
@@ -30,7 +31,7 @@ init location =
     { reportCode = ""
     , fights = []
     , friendlies = []
-    , legendaries = Legendaries.init
+    , legendaries = Analyser.init
     , processed = 0
     , errorMessage = Nothing
     , druids = Dict.empty
@@ -125,7 +126,7 @@ update msg model = case msg of
       cmd = Http.send (EventsRetrieved fight) request
       newModel =
         { model
-        | legendaries = Legendaries.init
+        | legendaries = Analyser.init
         , druids = Dict.empty
         , processed = 0
         , selectedFight = Just fight
@@ -149,7 +150,7 @@ update msg model = case msg of
       events = page.events
 
       newDruids = scanForDruids events model.friendlies model.druids
-      newLegendaries = Legendaries.update events model.legendaries
+      newLegendaries = Analyser.update events model.legendaries
 
       (processed, cmd) =
         case page.nextPageStartTimestamp of

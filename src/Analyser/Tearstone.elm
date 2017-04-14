@@ -1,10 +1,13 @@
 module Analyser.Tearstone exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
+import GenericDict exposing (GenericDict)
 import Set exposing (Set)
 
+import Legendaries
+
 import Util.List exposing (find)
-import Util.Maybe exposing ((?))
+import Util.Maybe exposing ((?), orElse)
 
 import WarcraftLogs.Models as WCL exposing (Event(..))
 
@@ -12,7 +15,7 @@ type Model = Model (Dict Int Druid)
 
 type alias Druid =
   { persistence : Int
-  , bonusHealing : Int
+  , bonusHealing : GenericDict Legendaries.Source Int
   , tearstoneActive : Bool
   , rejuvenationTarget : Int
   , tearstoneTargets : Set (Int, Int) -- (HoT, Target)
@@ -25,25 +28,19 @@ init =
 parse : WCL.Event -> Model -> Model
 parse event (Model druids) =
   let
-    blankDruid =
-      { persistence = 0
-      , bonusHealing = 0
-      , tearstoneActive = False
-      , rejuvenationTarget = 0
-      , tearstoneTargets = Set.empty
-      }
-    getDruid id = Dict.get id druids ? blankDruid
     updated id druid =
       Model <| Dict.insert id druid druids
     tearstoneSpells = Set.fromList [774, 155777]
   in case event of
     EncounterStart _ ->
-      let resetBonusHealing _ druid = { druid | bonusHealing = 0 }
+      let
+        resetBonusHealing _ druid =
+          { druid | bonusHealing = GenericDict.empty Legendaries.compareSource }
       in Model <| Dict.map resetBonusHealing druids
 
     CombatantInfo {sourceID, artifact} ->
       let
-        druid = getDruid sourceID
+        druid = getDruid druids sourceID
         persistence = find ((==) 186396 << .spellID) artifact
         rank = Maybe.map .rank persistence
       in
@@ -51,7 +48,7 @@ parse event (Model druids) =
 
     Cast {sourceID, ability, targetID} ->
       let
-        druid = getDruid sourceID
+        druid = getDruid druids sourceID
       in case ability.id of
         48438 -> -- Wild growth
           updated sourceID { druid | tearstoneActive = True }
@@ -64,7 +61,7 @@ parse event (Model druids) =
 
     ApplyBuff {sourceID, targetID, ability} ->
       let
-        druid = getDruid sourceID
+        druid = getDruid druids sourceID
       in
         if Set.member ability.id tearstoneSpells then
           if targetID == druid.rejuvenationTarget then
@@ -98,24 +95,47 @@ parse event (Model druids) =
 
     Heal {sourceID, targetID, ability, amount} ->
       let
-        druid = getDruid sourceID
+        druid = getDruid druids sourceID
         isTearstoneTarget =
           Set.map (\hot -> (hot, targetID)) tearstoneSpells
             |> Set.toList
             |> List.any (flip Set.member druid.tearstoneTargets)
       in
         if Set.member (ability.id, targetID) druid.tearstoneTargets then
-          updated sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+          updated sourceID { druid | bonusHealing = addBonusHealing amount Legendaries.Rejuvenation druid.bonusHealing }
         else if ability.id == 189853 && isTearstoneTarget then -- Dreamwalker
-          updated sourceID { druid | bonusHealing = druid.bonusHealing + amount }
+          updated sourceID { druid | bonusHealing = addBonusHealing amount Legendaries.Dreamwalker druid.bonusHealing }
         else
           Model druids
 
     _ ->
       Model druids
 
-bonusHealing : Model -> Int -> Int
-bonusHealing (Model druids) id =
-  Dict.get id druids
-    |> Maybe.map .bonusHealing
-    |> Maybe.withDefault 0
+getDruid : Dict Int Druid -> Int -> Druid
+getDruid druids sourceID =
+  let
+    blankDruid =
+      { persistence = 0
+      , bonusHealing = GenericDict.empty Legendaries.compareSource
+      , tearstoneActive = False
+      , rejuvenationTarget = 0
+      , tearstoneTargets = Set.empty
+      }
+  in
+    Dict.get sourceID druids ? blankDruid
+
+addBonusHealing
+  : Int
+  -> Legendaries.Source
+  -> GenericDict Legendaries.Source Int
+  -> GenericDict Legendaries.Source Int
+addBonusHealing amount source =
+  GenericDict.update source (Maybe.map ((+) amount) >> orElse (Just amount))
+
+bonusHealing : Model -> Int -> Legendaries.BonusHealing
+bonusHealing (Model druids) sourceID =
+  let
+    sources =
+      .bonusHealing <| getDruid druids sourceID
+  in
+    Legendaries.Breakdown sources

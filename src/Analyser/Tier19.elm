@@ -1,8 +1,12 @@
 module Analyser.Tier19 exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
+import GenericDict exposing (GenericDict)
+import Legendaries exposing (Source(..))
 import Set exposing (Set)
 import Time exposing (Time)
+
+import Util.Maybe exposing (orElse)
 
 import WarcraftLogs.Models exposing (Event, Event(..))
 
@@ -14,7 +18,7 @@ type alias Druid =
   , hots : Set (SpellID, TargetID)
   , wildGrowths : Dict TargetID Time
   , tearstoneEquipped : Bool
-  , bonusHealing : Int
+  , bonusHealing : GenericDict Source Int
   , lastPotA : Maybe Time
   }
 
@@ -152,13 +156,21 @@ parse event model =
             |> List.any (flip Set.member druid.hots)
       in
         if Set.member (ability.id, targetID) druid.hots then
-          updateDruid sourceID { druid | bonusHealing = druid.bonusHealing + amount } model
+          updateDruid sourceID { druid | bonusHealing = addBonusHealing amount Legendaries.Rejuvenation druid.bonusHealing } model
         else if ability.id == 189853 && is4pcTarget then -- Dreamwalker
-          updateDruid sourceID { druid | bonusHealing = druid.bonusHealing + amount } model
+          updateDruid sourceID { druid | bonusHealing = addBonusHealing amount Legendaries.Dreamwalker druid.bonusHealing } model
         else
           model
     _ ->
       model
+
+addBonusHealing
+  : Int
+  -> Legendaries.Source
+  -> GenericDict Legendaries.Source Int
+  -> GenericDict Legendaries.Source Int
+addBonusHealing amount source =
+  GenericDict.update source (Maybe.map ((+) amount) >> orElse (Just amount))
 
 getDruid : Model -> Int -> Druid
 getDruid (Model druids) sourceID =
@@ -169,7 +181,7 @@ getDruid (Model druids) sourceID =
       { lastRejuvenationTarget = 0
       , selfRejuvenation = Nothing
       , hots = Set.empty
-      , bonusHealing = 0
+      , bonusHealing = GenericDict.empty Legendaries.compareSource
       , tearstoneEquipped = False
       , wildGrowths = Dict.empty
       , lastPotA = Nothing
@@ -181,8 +193,12 @@ updateDruid sourceID druid (Model druids) =
 
 resetBonusHealing : Model -> Model
 resetBonusHealing (Model druids) =
-  Model <| Dict.map (\_ druid -> { druid | bonusHealing = 0 }) druids
+  Model <| Dict.map (\_ druid -> { druid | bonusHealing = GenericDict.empty Legendaries.compareSource }) druids
 
-bonusHealing : Model -> Int -> Int
-bonusHealing =
-  ((<<) .bonusHealing) << getDruid
+bonusHealing : Model -> Int -> Legendaries.BonusHealing
+bonusHealing druids sourceID =
+  let
+    sources =
+      .bonusHealing <| getDruid druids sourceID
+  in
+    Legendaries.Breakdown sources

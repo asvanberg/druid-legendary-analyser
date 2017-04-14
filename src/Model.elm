@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Http
 import Navigation
 
+import Analyser
 import Legendaries exposing (Legendary, Legendary(..))
 
 import WarcraftLogs.Models as WCL
@@ -12,7 +13,7 @@ type alias Model =
   { reportCode : String
   , fights : List WCL.Fight
   , friendlies : List WCL.Friendly
-  , legendaries : Legendaries.Model
+  , legendaries : Analyser.Model
   , processed : Float
   , errorMessage : Maybe String
   , druids : Dict Int Druid

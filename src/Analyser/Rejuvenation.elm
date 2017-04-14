@@ -1,7 +1,9 @@
 module Analyser.Rejuvenation exposing (..)
 
-import Dict exposing (Dict)
 import Analyser.Haste as Haste exposing (Haste)
+import Dict exposing (Dict)
+import GenericDict exposing (GenericDict)
+import Legendaries exposing (BonusHealing(..), Legendary(..), Source(..))
 import Time exposing (Time, second)
 import Util.List exposing (find)
 import Util.Maybe exposing ((?), isDefined, orElse)
@@ -22,7 +24,7 @@ type alias Druid =
   , bracers : Bool
   , shoulders : Bool
   , hots : Dict (CharacterID, AbilityID) Hot
-  , bonusHealing : Dict Int Int
+  , bonusHealing : GenericDict Legendary (GenericDict Source Int)
   , haste : Haste
   }
 type alias Hot =
@@ -34,10 +36,6 @@ type alias Hot =
   , effects : List (Effect, Time)
   }
 type Model = Model (Dict CharacterID Druid)
-
-type Source
-  = Shoulders
-  | DeepRootedTrait
 
 rejuvenationId : Int
 rejuvenationId = 774
@@ -59,7 +57,7 @@ parse_ event druids =
     EncounterStart _ ->
       let
         resetBonusHealing _ druid =
-          { druid | bonusHealing = Dict.empty }
+          { druid | bonusHealing = GenericDict.empty Legendaries.compareLegendary }
       in
         Dict.map resetBonusHealing druids
     CombatantInfo ({sourceID, specID, artifact, gear, spellHasteRating, strength} as info) ->
@@ -237,10 +235,10 @@ parse_ event druids =
               source =
                 case effectSource of
                   Just Tick ->
-                    Just Shoulders
+                    Just Legendaries.Shoulders
 
                   Just DeepRooted ->
-                    Just DeepRootedTrait
+                    Just Legendaries.DeepRooted
 
                   _ ->
                     Nothing
@@ -266,7 +264,7 @@ parse_ event druids =
                 case source of
                   Just s ->
                     { newDruid
-                    | bonusHealing = Dict.update (asInt s) (Maybe.map ((+) amount) >> orElse (Just amount)) newDruid.bonusHealing
+                    | bonusHealing = addBonusHealing amount s Legendaries.Rejuvenation newDruid.bonusHealing
                     }
 
                   Nothing ->
@@ -370,10 +368,10 @@ assignDreamwalker druid timestamp targetID amount =
     source =
       case effect of
         Just Tick ->
-          Just Shoulders
+          Just Legendaries.Shoulders
 
         Just DeepRooted ->
-          Just DeepRootedTrait
+          Just Legendaries.DeepRooted
 
         _ ->
           Nothing
@@ -381,15 +379,34 @@ assignDreamwalker druid timestamp targetID amount =
     case source of
       Just s ->
         { druid
-        | bonusHealing = Dict.update (asInt s) (Maybe.map ((+) amount) >> orElse (Just amount)) druid.bonusHealing
+        | bonusHealing = addBonusHealing amount s Legendaries.Dreamwalker druid.bonusHealing
         }
 
       Nothing ->
         druid
 
-bonusHealing : Model -> Source -> CharacterID -> Int
+addBonusHealing
+  : Int
+  -> Legendary
+  -> Source
+  -> GenericDict Legendary (GenericDict Source Int)
+  -> GenericDict Legendary (GenericDict Source Int)
+addBonusHealing amount legendary source =
+  let
+    increaseSource =
+      GenericDict.update source (Maybe.map ((+) amount) >> orElse (Just amount))
+    increaseLegendary =
+      GenericDict.update legendary (Maybe.map increaseSource >> orElse (Just <| GenericDict.singleton Legendaries.compareSource source amount))
+  in
+    increaseLegendary
+
+bonusHealing : Model -> Legendary -> CharacterID -> BonusHealing
 bonusHealing (Model druids) source druid =
-  Maybe.withDefault 0 <| Dict.get (asInt source) <| .bonusHealing <| getDruid druids druid
+  Breakdown
+    <| Maybe.withDefault (GenericDict.empty Legendaries.compareSource)
+    <| GenericDict.get source
+    <| .bonusHealing
+    <| getDruid druids druid
 
 getDruid : Dict CharacterID Druid -> CharacterID -> Druid
 getDruid druids characterID =
@@ -405,19 +422,10 @@ getDruid druids characterID =
         , persistence = 0
         , deepRooted = False
         , hots = Dict.empty
-        , bonusHealing = Dict.empty
+        , bonusHealing = GenericDict.empty Legendaries.compareLegendary
         , haste = Haste.unknown
         }
 
 getHot : Druid -> AbilityID -> CharacterID -> Maybe Hot
 getHot druid abilityID characterID =
   Dict.get (characterID, abilityID) druid.hots
-
-asInt : Source -> Int
-asInt source =
-  case source of
-    Shoulders ->
-      0
-
-    DeepRootedTrait ->
-      1

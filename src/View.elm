@@ -1,13 +1,15 @@
 module View exposing (view)
 
 import Dict
+import GenericDict
 import Html exposing (..)
 import Html.Attributes exposing (autofocus, class, classList, href, placeholder, style, type_, value)
 import Html.Events exposing (defaultOptions, onClick, onInput, onWithOptions)
 import Json.Decode as Decode
 import Regex as R
 
-import Legendaries exposing (Legendary(..))
+import Analyser
+import Legendaries exposing (Legendary(..), Source(..), BonusHealing(..))
 import Model exposing (..)
 
 import WarcraftLogs.Models as WCL
@@ -117,16 +119,17 @@ viewDruid model druid =
     [ div [ class "panel panel-default" ]
       [ div [class "panel-heading"] [ text druid.name ]
       , ul [ class "list-group" ]
-        <| List.map (viewLegendary model druid) druid.legendaries
+        <| List.concatMap (viewLegendary model druid) druid.legendaries
         ++ [ li [ class "list-group-item" ] [ text "Total", span [ class "pull-right" ] [ text <| thousandSep druid.healingDone ] ] ]
       ]
     ]
 
-viewLegendary : Model -> Druid -> Legendary -> Html Message
+viewLegendary : Model -> Druid -> Legendary -> List (Html Message)
 viewLegendary model druid legendary =
   let
-    bonusHealing = Legendaries.bonusHealing legendary model.legendaries druid.id
-    percentage = toFloat (bonusHealing * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
+    bonusHealing = Analyser.bonusHealing legendary model.legendaries druid.id
+    total = calculateTotal bonusHealing
+    percentage = toFloat (total * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
     legendaryName =
       case legendary of
         Boots ->
@@ -157,11 +160,52 @@ viewLegendary model druid legendary =
           "http://www.wowhead.com/item-set=" ++ (toString id)
         Legendaries.Trait id ->
           "http://www.wowhead.com/spell=" ++ (toString id)
+
+    totalItem =
+      li [ class "list-group-item" ]
+        [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ strong [] [ text legendaryName ] ]
+        , span [ class "pull-right" ] [ text <| thousandSep total, text " (", text <| toString percentage, text "%)" ]
+        ]
+
+    showSource (source, amount) =
+      li [ class "list-group-item small" ]
+        [ span [ class "col-xs-offset-1" ] [ text (sourceName source) ]
+        , span [ class "pull-right" ] [ text (thousandSep amount) ]
+        ]
   in
-    li [ class "list-group-item" ]
-      [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ text legendaryName ]
-      , span [ class "pull-right" ] [ text <| thousandSep bonusHealing, text " (", text <| toString percentage, text "%)" ]
-      ]
+    case bonusHealing of
+      Simple _ ->
+        [ totalItem ]
+
+      Breakdown sources ->
+        totalItem :: (GenericDict.toList sources |> List.sortBy Tuple.second |> List.reverse |> List.map showSource)
 
 thousandSep : Int -> String
 thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",") << toString
+
+calculateTotal : BonusHealing -> Int
+calculateTotal bonusHealing =
+  case bonusHealing of
+    Simple total ->
+      total
+
+    Breakdown sources ->
+      GenericDict.foldl (always (+)) 0 sources
+
+sourceName : Source -> String
+sourceName source =
+  case source of
+    Rejuvenation ->
+      "Rejuvenation"
+
+    Dreamwalker ->
+      "Dreamwalker"
+
+    CenarionWard ->
+      "Cenarion Ward"
+
+    WildGrowth ->
+      "Wild Growth"
+
+    Other ->
+      "Other"
