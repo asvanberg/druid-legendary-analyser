@@ -29,10 +29,12 @@ getFights reportCode randomNumber =
 getEvents : ReportCode -> Time -> Time -> Http.Request EventPage
 getEvents reportCode start end =
   let
+    filterCondition = "type in ('combatantinfo', 'encounterstart') or (source.class = 'Druid' and source.spec = 'Restoration') or (target.class = 'Druid' and target.spec = 'Restoration')"
     url = "https://www.warcraftlogs.com/v1/report/events/" ++ reportCode
       ++ "?api_key=" ++ apiKey
       ++ "&start=" ++ toString start
       ++ "&end=" ++ toString end
+      ++ "&filter=" ++ (Http.encodeUri filterCondition)
   in
     Http.get url eventPage
 
