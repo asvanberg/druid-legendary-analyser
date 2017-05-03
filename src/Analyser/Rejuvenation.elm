@@ -30,7 +30,6 @@ type alias Druid =
 type alias Hot =
   { applied : Time
   , expiration : Time
-  , bonusDuration : Time
   , lastTick : Time
   , numShoulderTicks : Int
   , effects : List (Effect, Time)
@@ -88,7 +87,6 @@ parse_ event druids =
           hot =
             { applied = timestamp
             , expiration = timestamp + baseDuration druid
-            , bonusDuration = 0
             , numShoulderTicks = 0
             , lastTick = timestamp
             , effects = [(Base, baseDuration druid)]
@@ -143,7 +141,6 @@ parse_ event druids =
             addFlourishEffect hot =
               { hot
               | effects = hot.effects ++ [(Flourish, 6)]
-              , bonusDuration = hot.bonusDuration + 6 * second
               }
             newDruid =
               { druid
@@ -158,7 +155,6 @@ parse_ event druids =
             addBracerEffect hot =
               { hot
               | effects = hot.effects ++ [(Bracer, 10)]
-              , bonusDuration = hot.bonusDuration + 10 * second
               }
             newDruid =
               { druid
@@ -182,7 +178,6 @@ parse_ event druids =
           if druid.shoulders && hot.numShoulderTicks < 5 && (hitPoints - amount) == maxHitPoints then
             { hot
             | numShoulderTicks = hot.numShoulderTicks + 1
-            , bonusDuration = hot.bonusDuration + durationOfTick
             , effects = hot.effects ++ [(Tick, durationOfTick)]
             }
           else
@@ -319,7 +314,6 @@ refreshHot timestamp druid ({expiration, effects, lastTick} as hot) =
     { hot
     | applied = timestamp
     , expiration = timestamp + duration
-    , bonusDuration = 0
     , numShoulderTicks = 0
     , lastTick = timestamp
     , effects = []
