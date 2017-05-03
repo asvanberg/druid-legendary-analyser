@@ -36,12 +36,18 @@ type alias Hot =
   }
 type Model = Model (Dict CharacterID Druid)
 
-rejuvenationId : Int
-rejuvenationId = 774
+isRejuvenation : AbilityID -> Bool
+isRejuvenation abilityID =
+  abilityID == 774 || abilityID == 155777
 
-baseDuration : Druid -> Time
-baseDuration druid =
-  toFloat (15 + druid.persistence) * second
+baseDuration : Druid -> AbilityID -> Time
+baseDuration druid abilityID =
+  if isRejuvenation abilityID then
+    toFloat (15 + druid.persistence) * second
+  else if abilityID == 48438 then
+    7 * second
+  else
+    0
 
 init : Model
 init = Model Dict.empty
@@ -81,15 +87,20 @@ parse_ event druids =
       in
         Dict.insert sourceID newDruid druids
     ApplyBuff {timestamp, sourceID, targetID, ability} ->
-      if ability.id == 774 || ability.id == 155777 then
+      if isRejuvenation ability.id || ability.id == 48438 then
         let
-          druid = getDruid druids sourceID
+          druid =
+            getDruid druids sourceID
+
+          duration =
+            baseDuration druid ability.id
+
           hot =
             { applied = timestamp
-            , expiration = timestamp + baseDuration druid
+            , expiration = timestamp + duration
             , numShoulderTicks = 0
             , lastTick = timestamp
-            , effects = [(Base, baseDuration druid)]
+            , effects = [(Base, duration)]
             }
           newDruid =
             { druid | hots = Dict.insert (targetID, ability.id) hot druid.hots }
@@ -99,7 +110,7 @@ parse_ event druids =
         druids
 
     RefreshBuff ({timestamp, sourceID, targetID, ability} as eventData) ->
-      if ability.id == 774 || ability.id == 155777 then
+      if isRejuvenation ability.id || ability.id == 48438 then
         let
           druid = getDruid druids sourceID
           maybeHot = getHot druid ability.id targetID
@@ -110,7 +121,7 @@ parse_ event druids =
             Just hot ->
               let
                 newHot =
-                  refreshHot timestamp druid hot
+                  refreshHot timestamp (baseDuration druid ability.id) hot
                 newDruid =
                   { druid
                   | hots = Dict.insert (targetID, ability.id) newHot druid.hots
@@ -186,7 +197,7 @@ parse_ event druids =
           if hitPoints < (maxHitPoints * 35 // 100) && druid.deepRooted then
             let
               duration =
-                calculateDeepRootedDuration (baseDuration druid) druid.haste
+                calculateDeepRootedDuration (baseDuration druid ability.id) druid.haste
 
               bonusDuration =
                 duration - remaining
@@ -244,11 +255,14 @@ parse_ event druids =
               updateHotEffects hot =
                 { hot | effects = newEffects }
 
+              updateHot =
+                if isRejuvenation ability.id then
+                  updateHotEffects >> addShoulderTick >> addDeepRooted remaining >> registerLastTick
+                else
+                  updateHotEffects >> addDeepRooted remaining >> registerLastTick
+
               newHot = hot
-                |> updateHotEffects
-                |> addShoulderTick
-                |> addDeepRooted remaining
-                |> registerLastTick
+                |> updateHot
 
               newDruid =
                 { druid
@@ -259,7 +273,7 @@ parse_ event druids =
                 case source of
                   Just s ->
                     { newDruid
-                    | bonusHealing = addBonusHealing amount s Legendaries.Rejuvenation newDruid.bonusHealing
+                    | bonusHealing = addBonusHealing amount s (if isRejuvenation ability.id then Legendaries.Rejuvenation else Legendaries.WildGrowth) newDruid.bonusHealing
                     }
 
                   Nothing ->
@@ -303,13 +317,13 @@ calculateDeepRootedDuration duration haste =
   in
     (toFloat numTicks) * tickDuration
 
-refreshHot : Time -> Druid -> Hot -> Hot
-refreshHot timestamp druid ({expiration, effects, lastTick} as hot) =
+refreshHot : Time -> Time -> Hot -> Hot
+refreshHot timestamp baseDuration ({expiration, effects, lastTick} as hot) =
   let
     remaining = (getRemaining effects) - (timestamp - lastTick)
-    maxPandemic = 0.3 * baseDuration druid
+    maxPandemic = 0.3 * baseDuration
     pandemicBonus = clamp 0 maxPandemic remaining
-    duration = baseDuration druid + pandemicBonus
+    duration = baseDuration + pandemicBonus
   in
     { hot
     | applied = timestamp
