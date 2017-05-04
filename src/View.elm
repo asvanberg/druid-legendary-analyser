@@ -151,7 +151,7 @@ viewLegendary model druid legendary =
         Shoulders ->
           "Shoulders"
         DeepRooted ->
-          "Deep Rooted (rejuv only)"
+          "Deep Rooted"
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
