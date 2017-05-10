@@ -58,25 +58,24 @@ parse event (Model druids) =
 
 parse_ : WCL.Event -> Dict CharacterID Druid -> Dict CharacterID Druid
 parse_ event druids =
-  case event of
+  druids |> case event of
     EncounterStart _ ->
       let
         resetBonusHealing _ druid =
           { druid | bonusHealing = GenericDict.empty Legendaries.compareLegendary }
       in
-        Dict.map resetBonusHealing druids
+        Dict.map resetBonusHealing
 
     CombatantInfo ({sourceID, specID, artifact, gear, spellHasteRating, strength} as info) ->
-      let
-        druid =
-          getDruid druids sourceID
-        persistence =
-          find ((==) 186396 << .spellID) artifact
-        rank =
-          Maybe.map .rank persistence
-        isEquipped itemId =
-          List.any ((==) itemId << .id) gear
-        newDruid =
+      usingDruid sourceID <| \druid ->
+        let
+          persistence =
+            find ((==) 186396 << .spellID) artifact
+          rank =
+            Maybe.map .rank persistence
+          isEquipped itemId =
+            List.any ((==) itemId << .id) gear
+        in
           { druid
           | persistence = rank ? 0
           , deepRooted =
@@ -85,67 +84,54 @@ parse_ event druids =
           , bracers = isEquipped 137095
           , haste = Haste.init info
           }
-      in
-        Dict.insert sourceID newDruid druids
 
     Cast {sourceID, ability} ->
-      case ability.id of
-        197721 -> -- Flourish
-          let
-            druid =
-              getDruid druids sourceID
-            addFlourishEffect hot =
-              { hot
-              | effects = hot.effects ++ [(Flourish, 6)]
-              }
-            newDruid =
+      usingDruid sourceID <| \druid ->
+        case ability.id of
+          197721 -> -- Flourish
+            let
+              addFlourishEffect hot =
+                { hot
+                | effects = hot.effects ++ [(Flourish, 6)]
+                }
+            in
               { druid
               | hots = Dict.map (always addFlourishEffect) druid.hots
               }
-          in
-            Dict.insert sourceID newDruid druids
-        18562 -> -- Swiftmend
-          let
-            druid =
-              getDruid druids sourceID
-            addBracerEffect hot =
-              { hot
-              | effects = hot.effects ++ [(Bracer, 10)]
-              }
-            newDruid =
-              { druid
-              | hots = Dict.map (always addBracerEffect) druid.hots
-              }
-          in
-            if druid.bracers then
-              Dict.insert sourceID newDruid druids
-            else
-              druids
-        _ ->
-          druids
+          18562 -> -- Swiftmend
+            let
+              addBracerEffect hot =
+                { hot
+                | effects = hot.effects ++ [(Bracer, 10)]
+                }
+            in
+              if druid.bracers then
+                { druid
+                | hots = Dict.map (always addBracerEffect) druid.hots
+                }
+              else
+                druid
+          _ ->
+            druid
 
     ApplyBuff {timestamp, sourceID, targetID, ability} ->
       if isRejuvenation ability.id || ability.id == 48438 then
-        let
-          druid =
-            getDruid druids sourceID
+        usingDruid sourceID <| \druid ->
+          let
+            duration =
+              baseDuration druid ability.id
 
-          duration =
-            baseDuration druid ability.id
-
-          hot =
-            { applied = timestamp
-            , expiration = timestamp + duration
-            , numShoulderTicks = 0
-            , lastTick = timestamp
-            , effects = [(Base, duration)]
-            }
-          newDruid =
+            hot =
+              { applied = timestamp
+              , expiration = timestamp + duration
+              , numShoulderTicks = 0
+              , lastTick = timestamp
+              , effects = [(Base, duration)]
+              }
+          in
             { druid | hots = Dict.insert (targetID, ability.id) hot druid.hots }
-        in
-          Dict.insert sourceID newDruid druids
       else
-        druids
+        identity
 
     RefreshBuff ({timestamp, sourceID, targetID, ability} as eventData) ->
       if isRejuvenation ability.id || ability.id == 48438 then
@@ -155,7 +141,7 @@ parse_ event druids =
         in
           case maybeHot of
             Nothing ->
-              parse_ (ApplyBuff eventData) druids
+              parse_ (ApplyBuff eventData)
             Just hot ->
               let
                 newHot =
@@ -165,21 +151,15 @@ parse_ event druids =
                   | hots = Dict.insert (targetID, ability.id) newHot druid.hots
                   }
               in
-                Dict.insert sourceID newDruid druids
+                Dict.insert sourceID newDruid
       else
-        druids
+        identity
 
     RemoveBuff {sourceID, targetID, ability} ->
-      let
-        druid =
-          getDruid druids sourceID
-
-        newDruid =
-          { druid
-          | hots = Dict.remove (targetID, ability.id) druid.hots
-          }
-      in
-        Dict.insert sourceID newDruid druids
+      usingDruid sourceID <| \druid ->
+        { druid
+        | hots = Dict.remove (targetID, ability.id) druid.hots
+        }
 
     Heal {timestamp, sourceID, targetID, ability, amount, hitPoints, maxHitPoints} ->
       let
@@ -224,9 +204,9 @@ parse_ event druids =
                 newDruid =
                   assignDreamwalker druid timestamp targetID amount
               in
-                Dict.insert sourceID newDruid druids
+                Dict.insert sourceID newDruid
             else
-              druids
+              identity
 
           Just hot ->
             let
@@ -281,10 +261,14 @@ parse_ event druids =
                   Nothing ->
                     newDruid
             in
-              Dict.insert sourceID druidWithBonusHealing druids
+              Dict.insert sourceID druidWithBonusHealing
 
     _ ->
-      druids
+      identity
+
+usingDruid : CharacterID -> (Druid -> Druid) -> (Dict CharacterID Druid) -> (Dict CharacterID Druid)
+usingDruid characterID updateFunction druids =
+  Dict.insert characterID (updateFunction <| getDruid druids characterID) druids
 
 updateEffectList : Time -> List (Effect, Time) -> List (Effect, Time)
 updateEffectList elapsed effects =
