@@ -65,6 +65,7 @@ parse_ event druids =
           { druid | bonusHealing = GenericDict.empty Legendaries.compareLegendary }
       in
         Dict.map resetBonusHealing druids
+
     CombatantInfo ({sourceID, specID, artifact, gear, spellHasteRating, strength} as info) ->
       let
         druid =
@@ -86,6 +87,43 @@ parse_ event druids =
           }
       in
         Dict.insert sourceID newDruid druids
+
+    Cast {sourceID, ability} ->
+      case ability.id of
+        197721 -> -- Flourish
+          let
+            druid =
+              getDruid druids sourceID
+            addFlourishEffect hot =
+              { hot
+              | effects = hot.effects ++ [(Flourish, 6)]
+              }
+            newDruid =
+              { druid
+              | hots = Dict.map (always addFlourishEffect) druid.hots
+              }
+          in
+            Dict.insert sourceID newDruid druids
+        18562 -> -- Swiftmend
+          let
+            druid =
+              getDruid druids sourceID
+            addBracerEffect hot =
+              { hot
+              | effects = hot.effects ++ [(Bracer, 10)]
+              }
+            newDruid =
+              { druid
+              | hots = Dict.map (always addBracerEffect) druid.hots
+              }
+          in
+            if druid.bracers then
+              Dict.insert sourceID newDruid druids
+            else
+              druids
+        _ ->
+          druids
+
     ApplyBuff {timestamp, sourceID, targetID, ability} ->
       if isRejuvenation ability.id || ability.id == 48438 then
         let
@@ -142,42 +180,6 @@ parse_ event druids =
           }
       in
         Dict.insert sourceID newDruid druids
-
-    Cast {sourceID, ability} ->
-      case ability.id of
-        197721 -> -- Flourish
-          let
-            druid =
-              getDruid druids sourceID
-            addFlourishEffect hot =
-              { hot
-              | effects = hot.effects ++ [(Flourish, 6)]
-              }
-            newDruid =
-              { druid
-              | hots = Dict.map (always addFlourishEffect) druid.hots
-              }
-          in
-            Dict.insert sourceID newDruid druids
-        18562 -> -- Swiftmend
-          let
-            druid =
-              getDruid druids sourceID
-            addBracerEffect hot =
-              { hot
-              | effects = hot.effects ++ [(Bracer, 10)]
-              }
-            newDruid =
-              { druid
-              | hots = Dict.map (always addBracerEffect) druid.hots
-              }
-          in
-            if druid.bracers then
-              Dict.insert sourceID newDruid druids
-            else
-              druids
-        _ ->
-          druids
 
     Heal {timestamp, sourceID, targetID, ability, amount, hitPoints, maxHitPoints} ->
       let
