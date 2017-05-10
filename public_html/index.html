@@ -51,6 +51,17 @@
           </div>
           <div class="well">
             <h4>Changelog</h4>
+            <h5>2017-05-10</h5>
+            <ul>
+              <li>
+                Fixed a bug with <a href="http://www.wowhead.com/item=137072/amanthuls-wisdom">shoulders</a>
+                and <a href="http://www.wowhead.com/spell=238122/deep-rooted">Deep Rooted</a>
+                analysis where <a href="http://www.wowhead.com/spell=197721/flourish">Flourish</a>
+                and <a href="http://www.wowhead.com/item=137095/edraith-bonds-of-aglaya">wrists</a>
+                extension was given in milliseconds instead of seconds causing too many ticks
+                to be attributed to shoulders and Deep Rooted.
+              </li>
+            </ul>
             <h5>2017-05-03</h5>
             <ul>
               <li>
@@ -165,7 +176,7 @@
         </div>
       </div>
     </div>
-    <script src="app.js?httpheadersdontworkstupidoverzealouscaching=13"></script>
+    <script src="app.js?httpheadersdontworkstupidoverzealouscaching=14"></script>
     <script type="text/javascript">
       Elm.Main.embed(document.getElementById('app'));
     </script>

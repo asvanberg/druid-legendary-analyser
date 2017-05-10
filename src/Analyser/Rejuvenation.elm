@@ -92,7 +92,7 @@ parse_ event druids =
             let
               addFlourishEffect hot =
                 { hot
-                | effects = hot.effects ++ [(Flourish, 6)]
+                | effects = hot.effects ++ [(Flourish, 6 * second)]
                 }
             in
               { druid
@@ -102,7 +102,7 @@ parse_ event druids =
             let
               addBracerEffect hot =
                 { hot
-                | effects = hot.effects ++ [(Bracer, 10)]
+                | effects = hot.effects ++ [(Bracer, 10 * second)]
                 }
             in
               if druid.bracers then
