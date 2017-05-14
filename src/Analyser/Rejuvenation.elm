@@ -18,14 +18,22 @@ type Effect
   | Bracer
   | Flourish
   | DeepRooted
+  | Tearstone
+  | T19_4P
+  | PotA
+
 type alias Druid =
   { persistence : Int
   , deepRooted : Bool
   , bracers : Bool
   , shoulders : Bool
+  , tearstone : Bool
+  , wildGrowthApplication : Dict CharacterID Time
+  , rejuvenationTarget : Maybe (CharacterID, Time)
   , hots : Dict (CharacterID, AbilityID) Hot
   , bonusHealing : GenericDict Legendary (GenericDict Source Int)
   , haste : Haste
+  , pota : Maybe (Time, Int)
   }
 type alias Hot =
   { applied : Time
@@ -82,10 +90,11 @@ parse_ event druids =
             isDefined <| find ((==) 238122 << .spellID) artifact
           , shoulders = isEquipped 137072
           , bracers = isEquipped 137095
+          , tearstone = isEquipped 137042
           , haste = Haste.init info
           }
 
-    Cast {sourceID, ability} ->
+    Cast {timestamp, sourceID, targetID, ability} ->
       usingDruid sourceID <| \druid ->
         case ability.id of
           197721 -> -- Flourish
@@ -111,11 +120,36 @@ parse_ event druids =
                 }
               else
                 druid
+          774 -> -- Rejuvenation
+            { druid
+            | rejuvenationTarget = Maybe.map (\t -> (t, timestamp)) targetID
+            }
           _ ->
             druid
 
-    ApplyBuff {timestamp, sourceID, targetID, ability} ->
-      if isRejuvenation ability.id || ability.id == 48438 then
+    ApplyBuff ({timestamp, sourceID, targetID, ability} as eventData) ->
+      if isRejuvenation ability.id then
+        usingDruid sourceID <| \druid ->
+          let
+            duration =
+              baseDuration druid ability.id
+
+            source =
+              determineSource timestamp targetID druid
+
+            hot =
+              { applied = timestamp
+              , expiration = timestamp + duration
+              , numShoulderTicks = 0
+              , lastTick = timestamp
+              , effects = [(source, duration)]
+              }
+          in
+            { druid
+            | hots = Dict.insert (targetID, ability.id) hot druid.hots
+            , pota = Maybe.map (\(t, c) -> (t, c + 1)) druid.pota
+            }
+      else if ability.id == 48438 then
         usingDruid sourceID <| \druid ->
           let
             duration =
@@ -129,12 +163,41 @@ parse_ event druids =
               , effects = [(Base, duration)]
               }
           in
-            { druid | hots = Dict.insert (targetID, ability.id) hot druid.hots }
+            { druid
+            | hots = Dict.insert (targetID, ability.id) hot druid.hots
+            , wildGrowthApplication = Dict.insert targetID timestamp druid.wildGrowthApplication
+            }
       else
         identity
 
     RefreshBuff ({timestamp, sourceID, targetID, ability} as eventData) ->
-      if isRejuvenation ability.id || ability.id == 48438 then
+      if isRejuvenation ability.id then
+        let
+          druid = getDruid druids sourceID
+          maybeHot = getHot druid ability.id targetID
+        in
+          case maybeHot of
+            Nothing ->
+              parse_ (ApplyBuff eventData)
+            Just hot ->
+              let
+                source =
+                  determineSource timestamp targetID druid
+
+                newHot =
+                  if source == Base then
+                    refreshHot timestamp (baseDuration druid ability.id) hot
+                  else
+                    pandemicExtensionRefresh timestamp (baseDuration druid ability.id) hot source
+
+                newDruid =
+                  { druid
+                  | hots = Dict.insert (targetID, ability.id) newHot druid.hots
+                  , pota = Maybe.map (\(t, c) -> (t, c + 1)) druid.pota
+                  }
+              in
+                Dict.insert sourceID newDruid
+      else if ability.id == 48438 then
         let
           druid = getDruid druids sourceID
           maybeHot = getHot druid ability.id targetID
@@ -155,11 +218,16 @@ parse_ event druids =
       else
         identity
 
-    RemoveBuff {sourceID, targetID, ability} ->
+    RemoveBuff {timestamp, sourceID, targetID, ability} ->
       usingDruid sourceID <| \druid ->
-        { druid
-        | hots = Dict.remove (targetID, ability.id) druid.hots
-        }
+        if ability.id == 189877 then
+          { druid
+          | pota = Just (timestamp, 0)
+          }
+        else
+          { druid
+          | hots = Dict.remove (targetID, ability.id) druid.hots
+          }
 
     Heal {timestamp, sourceID, targetID, ability, amount, hitPoints, maxHitPoints} ->
       let
@@ -228,6 +296,12 @@ parse_ event druids =
                   Just DeepRooted ->
                     Just Legendaries.DeepRooted
 
+                  Just Tearstone ->
+                    Just Legendaries.Tearstone
+
+                  Just T19_4P ->
+                    Just Legendaries.Tier19
+
                   _ ->
                     Nothing
 
@@ -269,6 +343,43 @@ parse_ event druids =
 usingDruid : CharacterID -> (Druid -> Druid) -> (Dict CharacterID Druid) -> (Dict CharacterID Druid)
 usingDruid characterID updateFunction druids =
   Dict.insert characterID (updateFunction <| getDruid druids characterID) druids
+
+determineSource : Time -> CharacterID -> Druid -> Effect
+determineSource timestamp targetID druid =
+  let
+    rejuvCastTarget =
+      case druid.rejuvenationTarget of
+        Just (characterID, castTime) ->
+          characterID == targetID && timestamp - castTime < 100
+
+        Nothing ->
+          False
+
+    tearstoneTarget =
+      case Dict.get targetID druid.wildGrowthApplication of
+        Just applicationTime ->
+          timestamp - applicationTime < 100
+
+        Nothing ->
+          False
+
+    potaApplication =
+      case druid.pota of
+        Just (applied, rejuvApplications) ->
+          -- > 0 because the first rejuvenation was what triggered PotA
+          timestamp - applied < 100 && rejuvApplications > 0 && rejuvApplications < 3
+
+        Nothing ->
+          False
+  in
+    if rejuvCastTarget then
+      Base
+    else if druid.tearstone && tearstoneTarget then
+      Tearstone
+    else if potaApplication then
+      PotA
+    else
+      T19_4P
 
 updateEffectList : Time -> List (Effect, Time) -> List (Effect, Time)
 updateEffectList elapsed effects =
@@ -319,6 +430,22 @@ refreshHot timestamp baseDuration ({expiration, effects, lastTick} as hot) =
     , effects = []
     }
 
+pandemicExtensionRefresh : Time -> Time -> Hot -> Effect -> Hot
+pandemicExtensionRefresh timestamp baseDuration ({expiration, effects, lastTick} as hot) effect =
+  let
+    remaining = (getRemaining effects) - (timestamp - lastTick)
+    maxPandemic = 0.3 * baseDuration
+    pandemicBonus = clamp 0 maxPandemic remaining
+    duration = baseDuration + pandemicBonus - remaining
+  in
+    { hot
+    | applied = timestamp
+    , expiration = timestamp + duration + remaining
+    , numShoulderTicks = 0
+    , lastTick = timestamp
+    , effects = hot.effects ++ [(effect, duration)]
+    }
+
 assignDreamwalker : Druid -> Time -> CharacterID -> Int -> Druid
 assignDreamwalker druid timestamp targetID amount =
   let
@@ -367,6 +494,12 @@ assignDreamwalker druid timestamp targetID amount =
         Just DeepRooted ->
           Just Legendaries.DeepRooted
 
+        Just Tearstone ->
+          Just Legendaries.Tearstone
+
+        Just T19_4P ->
+          Just Legendaries.Tier19
+
         _ ->
           Nothing
   in
@@ -413,11 +546,15 @@ getDruid druids characterID =
       Nothing ->
         { bracers = False
         , shoulders = False
+        , tearstone = False
         , persistence = 0
         , deepRooted = False
+        , wildGrowthApplication = Dict.empty
+        , rejuvenationTarget = Nothing
         , hots = Dict.empty
         , bonusHealing = GenericDict.empty Legendaries.compareLegendary
         , haste = Haste.unknown
+        , pota = Nothing
         }
 
 getHot : Druid -> AbilityID -> CharacterID -> Maybe Hot

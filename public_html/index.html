@@ -51,6 +51,14 @@
           </div>
           <div class="well">
             <h4>Changelog</h4>
+            <h5>2017-05-14</h5>
+            <p>
+              Changed analysis of <a href="http://www.wowhead.com/item=137042/tearstone-of-elune">Tearstone</a>
+              and <a href="http://www.wowhead.com/item-set=1283/garb-of-the-astral-warden">4T19</a> to not attribute
+              all of the healing from their respective rejuvenation application. It now works like the shoulders
+              and keeps track of the time they added and only healing during that interval is counted. End result is
+              a decrease for both of them and a slight increase in other extension effects.
+            </p>
             <h5>2017-05-10</h5>
             <ul>
               <li>
@@ -176,7 +184,7 @@
         </div>
       </div>
     </div>
-    <script src="app.js?httpheadersdontworkstupidoverzealouscaching=14"></script>
+    <script src="app.js?httpheadersdontworkstupidoverzealouscaching=15"></script>
     <script type="text/javascript">
       Elm.Main.embed(document.getElementById('app'));
     </script>
