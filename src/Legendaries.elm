@@ -67,9 +67,7 @@ type BonusHealing
 type Source
   = Rejuvenation
   | Dreamwalker
-  | CenarionWard
   | WildGrowth
-  | Other
 
 compareSource : Source -> Source -> Order
 compareSource s1 s2 =

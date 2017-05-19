@@ -37,7 +37,6 @@ type alias Druid =
   }
 type alias Hot =
   { applied : Time
-  , expiration : Time
   , lastTick : Time
   , numShoulderTicks : Int
   , effects : List (Effect, Time)
@@ -139,7 +138,6 @@ parse_ event druids =
 
             hot =
               { applied = timestamp
-              , expiration = timestamp + duration
               , numShoulderTicks = 0
               , lastTick = timestamp
               , effects = [(source, duration)]
@@ -157,7 +155,6 @@ parse_ event druids =
 
             hot =
               { applied = timestamp
-              , expiration = timestamp + duration
               , numShoulderTicks = 0
               , lastTick = timestamp
               , effects = [(Base, duration)]
@@ -415,7 +412,7 @@ calculateDeepRootedDuration duration haste =
     (toFloat numTicks) * tickDuration
 
 refreshHot : Time -> Time -> Hot -> Hot
-refreshHot timestamp baseDuration ({expiration, effects, lastTick} as hot) =
+refreshHot timestamp baseDuration ({effects, lastTick} as hot) =
   let
     remaining = (getRemaining effects) - (timestamp - lastTick)
     maxPandemic = 0.3 * baseDuration
@@ -424,14 +421,13 @@ refreshHot timestamp baseDuration ({expiration, effects, lastTick} as hot) =
   in
     { hot
     | applied = timestamp
-    , expiration = timestamp + duration
     , numShoulderTicks = 0
     , lastTick = timestamp
     , effects = []
     }
 
 pandemicExtensionRefresh : Time -> Time -> Hot -> Effect -> Hot
-pandemicExtensionRefresh timestamp baseDuration ({expiration, effects, lastTick} as hot) effect =
+pandemicExtensionRefresh timestamp baseDuration ({effects, lastTick} as hot) effect =
   let
     remaining = (getRemaining effects) - (timestamp - lastTick)
     maxPandemic = 0.3 * baseDuration
@@ -440,7 +436,6 @@ pandemicExtensionRefresh timestamp baseDuration ({expiration, effects, lastTick}
   in
     { hot
     | applied = timestamp
-    , expiration = timestamp + duration + remaining
     , numShoulderTicks = 0
     , lastTick = timestamp
     , effects = hot.effects ++ [(effect, duration)]

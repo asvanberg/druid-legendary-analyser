@@ -201,11 +201,5 @@ sourceName source =
     Dreamwalker ->
       "Dreamwalker"
 
-    CenarionWard ->
-      "Cenarion Ward"
-
     WildGrowth ->
       "Wild Growth"
-
-    Other ->
-      "Other"
