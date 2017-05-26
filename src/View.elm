@@ -152,6 +152,8 @@ viewLegendary model druid legendary =
           "Shoulders"
         DeepRooted ->
           "Deep Rooted"
+        Tier20 ->
+          "Tier 20 4pc"
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
@@ -159,6 +161,8 @@ viewLegendary model druid legendary =
         Legendaries.Set id _ _ ->
           "http://www.wowhead.com/item-set=" ++ (toString id)
         Legendaries.Trait id ->
+          "http://www.wowhead.com/spell=" ++ (toString id)
+        Legendaries.Aura id ->
           "http://www.wowhead.com/spell=" ++ (toString id)
 
     totalItem =

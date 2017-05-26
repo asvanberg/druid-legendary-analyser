@@ -181,7 +181,7 @@ scanForDruids events friendlies druids =
     addHealingDone amount druid = { druid | healingDone = druid.healingDone + amount}
     scanForDruid event druids =
       case event of
-        WCL.CombatantInfo {sourceID, specID, gear, artifact} ->
+        WCL.CombatantInfo {sourceID, specID, gear, artifact, auras} ->
           if specID == 105 then
             let
               isEquipped legendary =
@@ -194,6 +194,8 @@ scanForDruids events friendlies druids =
                       |> (<=) numRequired
                   Legendaries.Trait spellId ->
                     isDefined <| find ((==) spellId << .spellID) artifact
+                  Legendaries.Aura spellId ->
+                    isDefined <| find ((==) spellId << .id) auras
               legendaries = List.filter isEquipped Legendaries.all
               name = find ((==) sourceID << .id) friendlies
                 |> Maybe.map .name
