@@ -23,6 +23,7 @@ type Legendary
   | Shoulders
   | DeepRooted
   | Tier20
+  | Soul
 
 all : List Legendary
 all =
@@ -37,6 +38,7 @@ all =
   , Shoulders
   , DeepRooted
   , Tier20
+  , Soul
   ]
 
 compareLegendary : Legendary -> Legendary -> Order
@@ -63,6 +65,7 @@ itemId legendary =
     Shoulders -> Item 137072
     DeepRooted -> Trait 238122
     Tier20 -> Aura 242313
+    Soul -> Item 151636
 
 type BonusHealing
   = Simple Int

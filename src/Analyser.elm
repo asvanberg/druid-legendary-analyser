@@ -8,6 +8,7 @@ import Analyser.Drape as Drape
 import Analyser.Trinket as Trinket
 import Analyser.Rejuvenation as Rejuvenation
 import Analyser.Tier20 as Tier20
+import Analyser.Soul as Soul
 
 import Legendaries exposing (Legendary(..), BonusHealing(..), Source(..))
 
@@ -22,6 +23,7 @@ type Model = Model
   , trinket : Trinket.Model
   , rejuvenation : Rejuvenation.Model
   , tier20 : Tier20.Model
+  , soul : Soul.Model
   }
 
 init : Model
@@ -34,6 +36,7 @@ init = Model
   , trinket = Trinket.init
   , rejuvenation = Rejuvenation.init
   , tier20 = Tier20.init
+  , soul = Soul.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -47,6 +50,7 @@ update events (Model model) =
     newTrinket = List.foldl Trinket.parse model.trinket events
     newRejuvenation = List.foldl Rejuvenation.parse model.rejuvenation events
     newTier20 = List.foldl Tier20.parse model.tier20 events
+    newSoul = List.foldl Soul.parse model.soul events
   in
     Model
       { model
@@ -58,6 +62,7 @@ update events (Model model) =
       , trinket = newTrinket
       , rejuvenation = newRejuvenation
       , tier20 = newTier20
+      , soul = newSoul
       }
 
 bonusHealing : Legendary -> Model -> Int -> BonusHealing
@@ -87,5 +92,7 @@ bonusHealing legendary (Model model) sourceID =
           Rejuvenation.bonusHealing model.rejuvenation DeepRooted
         Tier20 ->
           Simple << Tier20.bonusHealing model.tier20
+        Soul ->
+          Soul.bonusHealing model.soul
   in
     legendaryBonushealing sourceID

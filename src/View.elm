@@ -154,6 +154,9 @@ viewLegendary model druid legendary =
           "Deep Rooted"
         Tier20 ->
           "Tier 20 4pc"
+        Soul ->
+          "Soul of the Archdruid"
+          
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
