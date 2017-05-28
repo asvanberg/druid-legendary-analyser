@@ -12,7 +12,6 @@ import Model exposing (..)
 import View exposing (view)
 
 import Util.List exposing (find)
-import Util.Maybe exposing (isDefined)
 
 import WarcraftLogs
 import WarcraftLogs.Models as WCL
@@ -193,9 +192,9 @@ scanForDruids events friendlies druids =
                       |> List.length
                       |> (<=) numRequired
                   Legendaries.Trait spellId ->
-                    isDefined <| find ((==) spellId << .spellID) artifact
+                    List.any ((==) spellId << .spellID) artifact
                   Legendaries.Aura spellId ->
-                    isDefined <| find ((==) spellId << .id) auras
+                    List.any ((==) spellId << .id) auras
               legendaries = List.filter isEquipped Legendaries.all
               name = find ((==) sourceID << .id) friendlies
                 |> Maybe.map .name

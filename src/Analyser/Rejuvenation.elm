@@ -6,7 +6,7 @@ import GenericDict exposing (GenericDict)
 import Legendaries exposing (BonusHealing(..), Legendary(..), Source(..))
 import Time exposing (Time, second)
 import Util.List exposing (find)
-import Util.Maybe exposing ((?), isDefined, orElse)
+import Util.Maybe exposing ((?), orElse)
 
 import WarcraftLogs.Models as WCL exposing (Event(..))
 
@@ -86,7 +86,7 @@ parse_ event druids =
           { druid
           | persistence = rank ? 0
           , deepRooted =
-            isDefined <| find ((==) 238122 << .spellID) artifact
+            List.any ((==) 238122 << .spellID) artifact
           , shoulders = isEquipped 137072
           , bracers = isEquipped 137095
           , tearstone = isEquipped 137042
