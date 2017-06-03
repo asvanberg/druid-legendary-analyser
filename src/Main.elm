@@ -202,7 +202,8 @@ scanForDruids events friendlies druids =
               druid = { id = sourceID
                       , name = name
                       , legendaries = legendaries
-                      , healingDone = 0
+                      , healingDone =
+                        Maybe.withDefault 0 <| Maybe.map .healingDone <| Dict.get sourceID druids
                       }
             in
               Dict.insert sourceID druid druids
