@@ -1,11 +1,14 @@
 module Analyser.Trinket exposing (Model, init, parse, bonusHealing)
 
 import Dict exposing (Dict)
+import GenericDict exposing (GenericDict)
+
+import Legendaries
 import WarcraftLogs.Models exposing (Event, Event(..))
 
 type alias SourceID = Int
 type alias Druid =
-  { bonusHealing : Int
+  { bonusHealing : GenericDict Legendaries.Source Int
   , trinketActive : Bool
   }
 
@@ -26,17 +29,26 @@ parse event (Model druids) =
     RemoveBuff {sourceID, ability} ->
       Model <| setTrinketState False sourceID ability druids
 
-    Heal {sourceID, amount, overheal} ->
+    Heal {sourceID, ability, amount, overheal} ->
       let
         oldDruid = getDruid druids sourceID
       in
-        if (oldDruid.trinketActive) then
+        if (ability.id == 235967) then
+          let
+            newBonusHealing =
+              GenericDict.update Legendaries.Overheal (addBonusHealing amount) oldDruid.bonusHealing
+
+            newDruid =
+              { oldDruid | bonusHealing = newBonusHealing }
+          in
+            Model <| Dict.insert sourceID newDruid druids
+        else if (oldDruid.trinketActive) then
           let
             baseHeal = (amount + overheal) // 115 * 100
             bonusHeal = max 0 (amount - baseHeal)
             newDruid =
               { oldDruid
-              | bonusHealing = oldDruid.bonusHealing + bonusHeal
+              | bonusHealing = GenericDict.update Legendaries.Increase (addBonusHealing bonusHeal) oldDruid.bonusHealing
               }
           in
             Model <| Dict.insert sourceID newDruid druids
@@ -46,9 +58,18 @@ parse event (Model druids) =
     _ ->
       Model druids
 
-bonusHealing : Model -> SourceID -> Int
+addBonusHealing : Int -> Maybe Int -> Maybe Int
+addBonusHealing amount current =
+  case current of
+    Just currentAmount ->
+      Just <| currentAmount + amount
+
+    Nothing ->
+      Just amount
+
+bonusHealing : Model -> SourceID -> Legendaries.BonusHealing
 bonusHealing (Model druids) sourceID =
-  .bonusHealing <| getDruid druids sourceID
+  Legendaries.Breakdown <| .bonusHealing <| getDruid druids sourceID
 
 setTrinketState : Bool -> SourceID -> WarcraftLogs.Models.Ability -> Dict SourceID Druid -> Dict SourceID Druid
 setTrinketState state sourceID ability druids =
@@ -70,6 +91,6 @@ getDruid druids sourceID =
 
 newDruid : Druid
 newDruid =
-  { bonusHealing = 0
+  { bonusHealing = GenericDict.empty Legendaries.compareSource
   , trinketActive = False
   }

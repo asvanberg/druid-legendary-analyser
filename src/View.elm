@@ -145,7 +145,7 @@ viewLegendary model druid legendary =
         Drape ->
           "Drape of Shame"
         Trinket ->
-          "Trinket (15% increase only)"
+          "Velen's Future Sight"
         Tier19 ->
           "Garb of the Astral Warden"
         Shoulders ->
@@ -156,7 +156,7 @@ viewLegendary model druid legendary =
           "Tier 20 4pc"
         Soul ->
           "Soul of the Archdruid"
-          
+
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
@@ -210,3 +210,9 @@ sourceName source =
 
     WildGrowth ->
       "Wild Growth"
+
+    Increase ->
+      "Healing increase"
+
+    Overheal ->
+      "Overheal spread"

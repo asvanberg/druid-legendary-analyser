@@ -83,7 +83,7 @@ bonusHealing legendary (Model model) sourceID =
         Drape ->
           Simple << Drape.bonusHealing model.drape
         Trinket ->
-          Simple << Trinket.bonusHealing model.trinket
+          Trinket.bonusHealing model.trinket
         Tier19 ->
           Rejuvenation.bonusHealing model.rejuvenation Tier19
         Shoulders ->

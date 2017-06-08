@@ -75,6 +75,8 @@ type Source
   = Rejuvenation
   | Dreamwalker
   | WildGrowth
+  | Increase
+  | Overheal
 
 compareSource : Source -> Source -> Order
 compareSource s1 s2 =
