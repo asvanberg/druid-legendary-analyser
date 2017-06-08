@@ -13,6 +13,9 @@ type alias Druid =
   , bonusHealing : Int
   }
 
+efflorescenceBonus : Int
+efflorescenceBonus = 200
+
 init : Model
 init = Model Dict.empty
 
@@ -43,7 +46,7 @@ parse_ event =
               amount + overheal
 
             baseHeal =
-              totalHeal // 2
+              totalHeal * 100 // (100 + efflorescenceBonus)
 
             bonusHealing =
               max 0 (amount - baseHeal)
