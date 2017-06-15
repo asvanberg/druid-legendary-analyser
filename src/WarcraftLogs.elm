@@ -167,16 +167,18 @@ energize =
 
 cast : Decoder Event
 cast =
-  map4 (\timestamp sourceID targetID ability -> Cast
+  map5 (\timestamp sourceID targetID ability resources -> Cast
     { timestamp = timestamp
     , sourceID = sourceID
     , targetID = targetID
     , ability = ability
+    , resources = resources
     })
     (field "timestamp" float)
     (field "sourceID" int)
     (maybe <| field "targetID" int)
     (field "ability" ability)
+    (field "classResources" (list resources))
 
 heal : Decoder Event
 heal =
@@ -249,6 +251,14 @@ aura : Decoder Aura
 aura =
   map Aura
     (field "ability" int)
+
+resources : Decoder Resource
+resources =
+  map4 Resource
+    (field "amount" int)
+    (field "max" int)
+    (field "type" int)
+    (maybe <| field "cost" int)
 
 encounterstart : Decoder Event
 encounterstart =

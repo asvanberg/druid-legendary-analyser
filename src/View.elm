@@ -9,7 +9,7 @@ import Json.Decode as Decode
 import Regex as R
 
 import Analyser
-import Legendaries exposing (Legendary(..), Source(..), BonusHealing(..))
+import Legendaries exposing (Legendary(..), Source(..), BonusHealing(..), BonusType(..))
 import Model exposing (..)
 
 import WarcraftLogs.Models as WCL
@@ -156,6 +156,8 @@ viewLegendary model druid legendary =
           "Tier 20 4pc"
         Soul ->
           "Soul of the Archdruid"
+        Promises ->
+          "Darkmoon Deck: Promises"
 
     wowheadLink itemId =
       case itemId of
@@ -174,6 +176,12 @@ viewLegendary model druid legendary =
         , span [ class "pull-right" ] [ text <| thousandSep total, text " (", text <| toString percentage, text "%)" ]
         ]
 
+    manaItem =
+      li [ class "list-group-item" ]
+        [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ strong [] [ text legendaryName ] ]
+        , span [ class "pull-right text-info" ] [ text <| thousandSep total, text " extra mana" ]
+        ]
+
     showSource (source, amount) =
       li [ class "list-group-item small" ]
         [ span [ class "col-xs-offset-1" ] [ text (sourceName source) ]
@@ -181,8 +189,11 @@ viewLegendary model druid legendary =
         ]
   in
     case bonusHealing of
-      Simple _ ->
+      Simple Healing _ ->
         [ totalItem ]
+
+      Simple Mana _ ->
+        [ manaItem ]
 
       Breakdown sources ->
         totalItem :: (GenericDict.toList sources |> List.sortBy Tuple.second |> List.reverse |> List.map showSource)
@@ -193,7 +204,7 @@ thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",") <
 calculateTotal : BonusHealing -> Int
 calculateTotal bonusHealing =
   case bonusHealing of
-    Simple total ->
+    Simple _ total ->
       total
 
     Breakdown sources ->

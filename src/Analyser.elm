@@ -9,8 +9,9 @@ import Analyser.Trinket as Trinket
 import Analyser.Rejuvenation as Rejuvenation
 import Analyser.Tier20 as Tier20
 import Analyser.Soul as Soul
+import Analyser.Promises as Promises
 
-import Legendaries exposing (Legendary(..), BonusHealing(..), Source(..))
+import Legendaries exposing (Legendary(..), BonusHealing(..), BonusType(..), Source(..))
 
 import WarcraftLogs.Models as WCL
 
@@ -24,6 +25,7 @@ type Model = Model
   , rejuvenation : Rejuvenation.Model
   , tier20 : Tier20.Model
   , soul : Soul.Model
+  , promises : Promises.Model
   }
 
 init : Model
@@ -37,6 +39,7 @@ init = Model
   , rejuvenation = Rejuvenation.init
   , tier20 = Tier20.init
   , soul = Soul.init
+  , promises = Promises.init
   }
 
 update : List WCL.Event -> Model -> Model
@@ -51,6 +54,7 @@ update events (Model model) =
     newRejuvenation = List.foldl Rejuvenation.parse model.rejuvenation events
     newTier20 = List.foldl Tier20.parse model.tier20 events
     newSoul = List.foldl Soul.parse model.soul events
+    newPromises = List.foldl Promises.parse model.promises events
   in
     Model
       { model
@@ -63,6 +67,7 @@ update events (Model model) =
       , rejuvenation = newRejuvenation
       , tier20 = newTier20
       , soul = newSoul
+      , promises = newPromises
       }
 
 bonusHealing : Legendary -> Model -> Int -> BonusHealing
@@ -71,17 +76,17 @@ bonusHealing legendary (Model model) sourceID =
     legendaryBonushealing =
       case legendary of
         Boots ->
-          Simple << Boots.bonusHealing model.boots
+          Simple Healing << Boots.bonusHealing model.boots
         Wrists ->
-          Simple << Wrists.bonusHealing model.wrists
+          Simple Healing << Wrists.bonusHealing model.wrists
         Tearstone ->
           Rejuvenation.bonusHealing model.rejuvenation Tearstone
         Waist ->
-          Simple << Waist.bonusHealing model.waist
+          Simple Healing << Waist.bonusHealing model.waist
         Chest ->
-          Simple << Chest.bonusHealing model.chest
+          Simple Healing << Chest.bonusHealing model.chest
         Drape ->
-          Simple << Drape.bonusHealing model.drape
+          Simple Healing << Drape.bonusHealing model.drape
         Trinket ->
           Trinket.bonusHealing model.trinket
         Tier19 ->
@@ -91,8 +96,10 @@ bonusHealing legendary (Model model) sourceID =
         DeepRooted ->
           Rejuvenation.bonusHealing model.rejuvenation DeepRooted
         Tier20 ->
-          Simple << Tier20.bonusHealing model.tier20
+          Simple Healing << Tier20.bonusHealing model.tier20
         Soul ->
           Soul.bonusHealing model.soul
+        Promises ->
+          Simple Mana << Promises.bonusHealing model.promises
   in
     legendaryBonushealing sourceID

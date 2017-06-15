@@ -53,6 +53,7 @@ type Event
     , sourceID : Int
     , targetID : Maybe Int -- Some spells like Tranquility requires no target
     , ability : Ability
+    , resources : List Resource
     }
 
   | Heal
@@ -191,4 +192,11 @@ type alias Ability =
 
 type alias Aura =
   { id : Int
+  }
+
+type alias Resource =
+  { amount : Int
+  , max : Int
+  , type_ : Int -- 0 is mana, should make a proper type type
+  , cost : Maybe Int
   }
