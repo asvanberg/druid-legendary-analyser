@@ -43,6 +43,9 @@ type alias Hot =
   }
 type Model = Model (Dict CharacterID Druid)
 
+maxShoulderTicks : Int
+maxShoulderTicks = 3
+
 isRejuvenation : AbilityID -> Bool
 isRejuvenation abilityID =
   abilityID == 774 || abilityID == 155777
@@ -233,7 +236,7 @@ parse_ event druids =
         durationOfTick =
           (3 * second)
         addShoulderTick hot =
-          if druid.shoulders && hot.numShoulderTicks < 5 && (hitPoints - amount) == maxHitPoints then
+          if druid.shoulders && hot.numShoulderTicks < maxShoulderTicks && (hitPoints - amount) == maxHitPoints then
             { hot
             | numShoulderTicks = hot.numShoulderTicks + 1
             , effects = hot.effects ++ [(Tick, durationOfTick)]
