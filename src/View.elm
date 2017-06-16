@@ -1,7 +1,7 @@
 module View exposing (view)
 
 import Dict
-import GenericDict
+import GenericDict exposing (GenericDict)
 import Html exposing (..)
 import Html.Attributes exposing (autofocus, class, classList, href, placeholder, style, type_, value)
 import Html.Events exposing (defaultOptions, onClick, onInput, onWithOptions)
@@ -128,8 +128,8 @@ viewLegendary : Model -> Druid -> Legendary -> List (Html Message)
 viewLegendary model druid legendary =
   let
     bonusHealing = Analyser.bonusHealing legendary model.legendaries druid.id
-    total = calculateTotal bonusHealing
-    percentage = toFloat (total * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
+    percentage amount =
+       toFloat (amount * 10000 // druid.healingDone) / 100 -- Rounding to 2 digits
     legendaryName =
       case legendary of
         Boots ->
@@ -170,16 +170,16 @@ viewLegendary model druid legendary =
         Legendaries.Aura id ->
           "http://www.wowhead.com/spell=" ++ (toString id)
 
-    totalItem =
+    totalItem amount =
       li [ class "list-group-item" ]
         [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ strong [] [ text legendaryName ] ]
-        , span [ class "pull-right" ] [ text <| thousandSep total, text " (", text <| toString percentage, text "%)" ]
+        , span [ class "pull-right" ] [ text <| thousandSep amount, text " (", text <| toString <| percentage amount, text "%)" ]
         ]
 
-    manaItem =
+    manaItem amount =
       li [ class "list-group-item" ]
         [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ strong [] [ text legendaryName ] ]
-        , span [ class "pull-right text-info" ] [ text <| thousandSep total, text " extra mana" ]
+        , span [ class "pull-right text-info" ] [ text <| thousandSep amount, text " extra mana" ]
         ]
 
     showSource (source, amount) =
@@ -189,26 +189,21 @@ viewLegendary model druid legendary =
         ]
   in
     case bonusHealing of
-      Simple Healing _ ->
-        [ totalItem ]
+      Simple Healing amount ->
+        [ totalItem amount ]
 
-      Simple Mana _ ->
-        [ manaItem ]
+      Simple Mana amount ->
+        [ manaItem amount ]
 
       Breakdown sources ->
-        totalItem :: (GenericDict.toList sources |> List.sortBy Tuple.second |> List.reverse |> List.map showSource)
+        totalItem (calculateTotal sources) :: (GenericDict.toList sources |> List.sortBy Tuple.second |> List.reverse |> List.map showSource)
 
 thousandSep : Int -> String
 thousandSep = R.replace R.All (R.regex "\\B(?=(\\d{3})+(?!\\d))") (always ",") << toString
 
-calculateTotal : BonusHealing -> Int
-calculateTotal bonusHealing =
-  case bonusHealing of
-    Simple _ total ->
-      total
-
-    Breakdown sources ->
-      GenericDict.foldl (always (+)) 0 sources
+calculateTotal : GenericDict Source Int -> Int
+calculateTotal =
+  GenericDict.foldl (always (+)) 0
 
 sourceName : Source -> String
 sourceName source =
