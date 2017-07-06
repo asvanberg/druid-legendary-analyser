@@ -20,6 +20,7 @@ getFights reportCode randomNumber =
   let
     url = "https://www.warcraftlogs.com/v1/report/fights/" ++ reportCode
       ++ "?api_key=" ++ apiKey
+      ++ "&translate=1"
       ++ "&" ++ (toString randomNumber)
     fights = field "fights" <| list fightDecoder
     friendlies = field "friendlies" <| list friendlyDecoder
