@@ -9,7 +9,7 @@ import Json.Decode as Decode
 import Regex as R
 
 import Analyser
-import Legendaries exposing (Legendary(..), Source(..), BonusHealing(..), BonusType(..))
+import Legendaries exposing (Legendary(..), Source(..), BonusHealing(..))
 import Model exposing (..)
 
 import WarcraftLogs.Models as WCL
@@ -147,7 +147,7 @@ viewLegendary model druid legendary =
         Trinket ->
           "Velen's Future Sight"
         Tier19 ->
-          "Garb of the Astral Warden"
+          "Tier 19 4pc"
         Shoulders ->
           "Shoulders"
         DeepRooted ->
@@ -156,15 +156,11 @@ viewLegendary model druid legendary =
           "Tier 20 4pc"
         Soul ->
           "Soul of the Archdruid"
-        Promises ->
-          "Darkmoon Deck: Promises"
 
     wowheadLink itemId =
       case itemId of
         Legendaries.Item id ->
           "http://www.wowhead.com/item=" ++ (toString id)
-        Legendaries.Set id _ _ ->
-          "http://www.wowhead.com/item-set=" ++ (toString id)
         Legendaries.Trait id ->
           "http://www.wowhead.com/spell=" ++ (toString id)
         Legendaries.Aura id ->
@@ -176,12 +172,6 @@ viewLegendary model druid legendary =
         , span [ class "pull-right" ] [ text <| thousandSep amount, text " (", text <| toString <| percentage amount, text "%)" ]
         ]
 
-    manaItem amount =
-      li [ class "list-group-item" ]
-        [ a [ href <| wowheadLink <| Legendaries.itemId legendary ] [ strong [] [ text legendaryName ] ]
-        , span [ class "pull-right text-info" ] [ text <| thousandSep amount, text " extra mana" ]
-        ]
-
     showSource (source, amount) =
       li [ class "list-group-item small" ]
         [ span [ class "col-xs-offset-1" ] [ text (sourceName source) ]
@@ -189,11 +179,8 @@ viewLegendary model druid legendary =
         ]
   in
     case bonusHealing of
-      Simple Healing amount ->
+      Simple amount ->
         [ totalItem amount ]
-
-      Simple Mana amount ->
-        [ manaItem amount ]
 
       Breakdown sources ->
         totalItem (calculateTotal sources) :: (GenericDict.toList sources |> List.sortBy Tuple.second |> List.reverse |> List.map showSource)

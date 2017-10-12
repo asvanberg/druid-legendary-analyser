@@ -2,7 +2,6 @@ module Legendaries exposing
   ( ItemID(..)
   , Legendary(..)
   , BonusHealing(..)
-  , BonusType(..)
   , Source(..)
   , all
   , compareLegendary
@@ -25,7 +24,6 @@ type Legendary
   | DeepRooted
   | Tier20
   | Soul
-  | Promises
 
 all : List Legendary
 all =
@@ -41,7 +39,6 @@ all =
   , DeepRooted
   , Tier20
   , Soul
-  , Promises
   ]
 
 compareLegendary : Legendary -> Legendary -> Order
@@ -50,7 +47,6 @@ compareLegendary l1 l2 =
 
 type ItemID
   = Item Int
-  | Set Int Int (List Int)
   | Trait Int
   | Aura Int
 
@@ -64,20 +60,15 @@ itemId legendary =
     Chest -> Item 137015
     Drape -> Item 142170
     Trinket -> Item 144258
-    Tier19 -> Set 1283 4 [ 138324, 138327, 138330, 138333, 138336, 138366 ]
+    Tier19 -> Aura 211170
     Shoulders -> Item 137072
     DeepRooted -> Trait 238122
     Tier20 -> Aura 242313
     Soul -> Item 151636
-    Promises -> Item 128710
 
 type BonusHealing
-  = Simple BonusType Int
+  = Simple Int
   | Breakdown (GenericDict Source Int)
-
-type BonusType
-  = Healing
-  | Mana
 
 type Source
   = Rejuvenation
